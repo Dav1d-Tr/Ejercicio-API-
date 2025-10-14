@@ -1,0 +1,670 @@
+@page "/entregables"
+
+@* 
+    DIRECTIVAS DE BLAZOR:
+    - @page: Define la ruta URL para acceder a este componente
+    - @using: Importa namespaces para usar clases sin escribir el namespace completo
+    - @inject: Inyecta servicios registrados en el contenedor de dependencias
+    - @rendermode: CRÍTICO - Hace que el componente sea interactivo desde el inicio,
+                   sin esto, los botones no funcionan debido al prerendering
+*@
+
+@using System.Net.Http.Json
+@using FrontendBlazorApi.Models
+@rendermode InteractiveServer
+
+@inject IHttpClientFactory fabricaHttp
+
+<PageTitle>Entregables</PageTitle>
+
+<h3>Gestión de Entregables</h3>
+
+@* ------------- BARRA DE ACCIONES GENERALES ------------- 
+    Botones que no están relacionados con el formulario específico
+*@
+<div class="mb-3 d-flex gap-2">
+    @* type="button" evita que estos botones hagan submit del formulario *@
+
+    @*Boton Probar conexión*@
+    <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+        <div class="bg-gradient p-1 rounded-3"
+            style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+            <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                    background: linear-gradient(to bottom, #414448, #646c7d);
+                    border: 1px solid #6a6a6c;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                    transition: all 0.15s ease-in-out;
+                " @onclick="ProbarConexion" onmousedown="this.style.transform='scale(0.98)';"
+                onmouseup="this.style.transform='scale(1)';">
+                <div class="rounded-1 px-3 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold">Probar Conexión</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    @*Boton Mostrar todos*@
+    <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+        <div class="bg-gradient p-1 rounded-3"
+            style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+            <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                    background: linear-gradient(to bottom, #357de9, #8ea6e0);
+                    border: 1px solid #8ea6e0;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                    transition: all 0.15s ease-in-out;
+                " @onclick="CargarEntregables" onmousedown="this.style.transform='scale(0.98)';"
+                onmouseup="this.style.transform='scale(1)';">
+                <div class="rounded-1 px-3 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold">Mostrar Todos</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    @*Boton Limpiar*@
+    <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+        <div class="bg-gradient p-1 rounded-3"
+            style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+            <button type="button" class="btn p-1 rounded-2 shadow text-black fw-semibold" style="
+                    background: linear-gradient(to bottom, #ffffff, #c3cde7);
+                    border: 1px solid #dde5f8;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                    transition: all 0.15s ease-in-out;
+                " @onclick="LimpiarFormulario" onmousedown="this.style.transform='scale(0.98)';"
+                onmouseup="this.style.transform='scale(1)';">
+                <div class="rounded-1 px-3 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold">Limpiar</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+@* ------------- MENSAJES DE ESTADO ------------- 
+    Muestra mensajes de éxito, error o información al usuario
+    Se usa renderizado condicional (@if) para mostrar solo cuando hay mensaje
+*@
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    @* La clase CSS viene de la variable claseAviso que cambia según el tipo de mensaje *@
+    <div class="@claseAviso" role="alert">@mensaje</div>
+}
+
+@* ------------- FORMULARIO CRUD ------------- 
+    EditForm: Componente de Blazor para formularios con validación
+    - Model: El objeto que se vincula al formulario
+    - OnValidSubmit: Método que se ejecuta cuando el formulario es válido y se envía
+    - FormName: CRÍTICO - Requerido en Blazor Server para identificar formularios únicos
+*@
+<h4>Formulario de Entregables</h4>
+
+<EditForm Model="entregableActual" OnValidSubmit="GuardarSegunEstado" FormName="EntregableForm">
+    @* Componentes de validación automática *@
+    <DataAnnotationsValidator /> @* Habilita validación basada en atributos *@
+    <ValidationSummary /> @* Muestra resumen de errores de validación *@
+
+    @* Grid responsivo de Bootstrap para organizar los campos *@
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Id</label>
+            @* 
+                InputText: Componente de Blazor para campos de texto
+                @bind-Value: Vinculación bidireccional (two-way binding)
+                - Cuando el usuario escribe, actualiza productoActual.Id
+                - Cuando el código cambia por programa, actualiza el campo visual
+            *@
+            <InputNumber
+                class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
+                @bind-Value="entregableActual.Id" />
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label">Codigo</label>
+            <InputText
+                class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
+                @bind-Value="entregableActual.Codigo" />
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label">Titulo</label>
+            <InputText
+                class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
+                @bind-Value="entregableActual.Titulo" />
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label">Fecha De Inicio</label>
+            <InputDate 
+                class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
+                @bind-Value="entregableActual.FechaInicio" />
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label">Fecha Del Fin Previsto</label>
+            <InputDate 
+                class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
+                @bind-Value="entregableActual.FechaFinPrevista" />
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label">Fecha De La Modificacion</label>
+            <InputDate 
+                class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
+                @bind-Value="entregableActual.FechaModificacion" />
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label">Fecha De La Finalizacion</label>
+            <InputDate 
+                class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
+                @bind-Value="entregableActual.FechaFinalizacion" />
+        </div>
+
+        <div class="col-md-8">
+            <label class="form-label">Descripción</label>
+            @* InputNumber: Para campos numéricos, maneja la conversión automáticamente *@
+            <InputTextArea
+                class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
+                @bind-Value="entregableActual.Descripcion" rows="3"/>
+        </div>
+    </div>
+
+    <div class="mt-3 d-flex flex-wrap gap-2">
+        @* 
+            type="submit": Este botón envía el formulario y ejecuta OnValidSubmit
+            El texto cambia dinámicamente entre "Crear" y "Actualizar"
+        *@
+        <button type="submit"
+            class="btn-create d-flex align-items-center gap-1 text-white font-weight-bold border border-success rounded-pill px-4 py-2">
+            <img src="icons/paper-plane-solid.svg" alt="Guardar" width="24" height="24" class="me-1" />
+            @textoBotonGuardar
+        </button>
+
+        @* 
+            type="button": Botones que NO envían el formulario
+            @onclick: Especifica el método C# que se ejecuta al hacer clic
+            disabled: Atributo dinámico que habilita/deshabilita según condiciones
+        *@
+
+        <button type="button"
+            class="btn-buscar d-flex align-items-center gap-1 text-white font-weight-bold border border-secondary rounded-pill px-4 py-2"
+            @onclick="BuscarPorId">
+            <img src="icons/magnifying-glass-solid.svg" alt="Buscar" width="24" height="24" class="me-1" />
+            Buscar
+        </button>
+        <button type="button"
+            class="btn-eliminar d-flex align-items-center gap-1 text-white font-weight-bold border border-danger rounded-pill px-4 py-2"
+            @onclick="EliminarEntregable" disabled="@(!existeEntregable)">
+            <img src="icons/trash-can-solid.svg" alt="Eliminar" width="24" height="24" class="me-1" />
+            Eliminar
+        </button>
+    </div>
+</EditForm>
+
+<hr />
+
+@* ------------- LISTADO (READ/LIST) ------------- 
+    Muestra los productos en una tabla con renderizado condicional
+*@
+
+@* Renderizado condicional: muestra diferentes contenidos según el estado *@
+@if (cargando)
+{
+    <p><em>Cargando Entregables...</em></p>
+}
+else if (listaEntregables.Count == 0)
+{
+    <p>No hay Entregables disponibles.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Código</th>
+                <th>Titulo</th>
+                <th>Descripción</th>
+                <th>Fecha De Inicio</th>
+                @*<th>Fecha Del Fin Previsto</th>*@
+                @*<th>Fecha De Modificación</th>*@
+                <th>Fecha De Finalización</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @* 
+                @foreach: Itera sobre la lista y genera HTML para cada elemento
+                Cada producto (p) se renderiza como una fila
+            *@
+            @foreach (var e in listaEntregables)
+            {
+                <tr>
+                    @* @ permite usar variables C# dentro de HTML *@
+                    <td>@e.Id</td>
+                    <td>@e.Codigo</td>
+                    <td>@e.Titulo</td>
+                    <td>@e.Descripcion</td>
+                    <td>@e.FechaInicio</td>
+                    @*<td>@e.FechaFinPrevista</td>*@
+                    @*<td>@e.FechaModificacion</td>*@
+                    <td>@e.FechaFinalizacion</td>
+                    <td>
+                        @* 
+                            @(() => método(parámetro)): Lambda expression para pasar parámetros
+                            Cada botón "sabe" qué producto cargar en el formulario
+                        *@
+                        <button type="button"
+                            class="btn-cargar d-flex align-items-center gap-1 text-white font-weight-bold border border-primary rounded-pill px-4 py-2"
+                            @onclick="@(() => CargarEnFormulario(e))">
+                            <img src="icons/spinner-solid.svg" alt="Cargar" width="24" height="24" class="me-1" />
+                            Cargar
+                        </button>
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    
+    // =============================================================================
+    // VARIABLES DE ESTADO DEL COMPONENTE
+    // =============================================================================
+
+    // Lista que contiene todos los productos para mostrar en la tabla
+    private List<Entregable> listaEntregables = new List<Entregable>();
+
+    // CRÍTICO: [SupplyParameterFromForm]
+    // Este atributo le dice a Blazor que esta propiedad se llena desde el formulario
+    // Sin esto, el formulario no funciona correctamente en Blazor Server
+    [SupplyParameterFromForm]
+    private Entregable entregableActual { get; set; } = new Entregable();
+
+    // Bandera que indica si el producto en el formulario ya existe en la base de datos
+    // Determina si el botón principal dice "Crear" o "Actualizar"
+    private bool existeEntregable = false;
+
+    // Texto dinámico del botón principal
+    private string textoBotonGuardar = "Crear";
+
+    private string IconBotonGuardar = "Crear";
+
+    // Variables para mostrar mensajes al usuario
+    private string mensaje = "";
+    private string claseAviso = "alert alert-info"; // Clase CSS Bootstrap para el tipo de mensaje
+
+    // Indicador visual de carga para mejorar UX
+    private bool cargando = false;
+
+    // URL base de la API - se complementa con la BaseAddress configurada en Program.cs
+    private const string urlBaseApi = "api/Entregable";
+
+    // =============================================================================
+    // MÉTODOS DEL CICLO DE VIDA DEL COMPONENTE
+    // =============================================================================
+
+    /// <summary>
+    /// Se ejecuta automáticamente cuando el componente se inicializa
+    /// Es async porque necesita esperar la carga de datos de la API
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarEntregables();
+    }
+
+    // =============================================================================
+    // OPERACIONES CRUDL (CREATE, READ, UPDATE, DELETE, LIST)
+    // =============================================================================
+
+    /// <summary>
+    /// LISTAR: Obtiene todos los productos de la API
+    /// HTTP GET /api/producto
+    /// </summary>
+    private async Task CargarEntregables()
+    {
+        try
+        {
+            // Indica que está cargando para mostrar mensaje al usuario
+            cargando = true;
+
+            // Crea un cliente HTTP configurado (ver Program.cs)
+            var cliente = fabricaHttp.CreateClient("ApiEntregables");
+
+            // GetFromJsonAsync: Hace GET y deserializa automáticamente el JSON
+            // RespuestaApi<List<Producto>>: Tipo genérico que mapea la estructura de respuesta
+            var respuesta = await cliente.GetFromJsonAsync<RespuestaApi<List<Entregable>>>(urlBaseApi);
+
+            // Operador null-coalescing (??) para manejar respuestas nulas
+            listaEntregables = respuesta?.Datos ?? new List<Entregable>();
+
+            // Mensaje de éxito
+            mensaje = $"Se cargaron {listaEntregables.Count} Entregable (s).";
+            claseAviso = "alert alert-success";
+        }
+        catch (Exception error)
+        {
+            // Manejo de errores con mensaje para el usuario
+            mensaje = $"Error al listar Entregables: {error.Message}";
+            claseAviso = "alert alert-danger";
+        }
+        finally
+        {
+            // Finally garantiza que siempre se ejecute, incluso si hay error
+            cargando = false;
+        }
+    }
+
+    /// <summary>
+    /// BUSCAR: Busca un producto específico por código
+    /// HTTP GET /api/producto/Id/{Id}
+    /// </summary>
+    private async Task BuscarPorId()
+    {
+        LimpiarMensajes();
+
+        // Validación de entrada
+        if (entregableActual.Id <= 0)
+        {
+            mensaje = "Debe indicar el código para buscar.";
+            claseAviso = "alert alert-warning";
+            return; // Sale del método sin hacer la consulta
+        }
+
+        try
+        {
+            var cliente = fabricaHttp.CreateClient("ApiEntregables");
+
+            // Construcción dinámica de la URL con el código
+            var ruta = $"{urlBaseApi}/Id/{entregableActual.Id}";
+            var respuesta = await cliente.GetFromJsonAsync<RespuestaApi<List<Entregable>>>(ruta);
+
+            // FirstOrDefault: Toma el primer elemento o null si no hay elementos
+            var encontrado = respuesta?.Datos?.FirstOrDefault();
+
+            if (encontrado is not null)
+            {
+                // ENCONTRADO: Carga los datos en el formulario
+                entregableActual = new Entregable
+                {
+                    Id = encontrado.Id,
+                    Codigo = encontrado.Codigo,
+                    Titulo = encontrado.Titulo,
+                    Descripcion = encontrado.Descripcion,
+                    FechaInicio = encontrado.FechaInicio,
+                    FechaFinPrevista = encontrado.FechaFinPrevista,
+                    FechaModificacion = encontrado.FechaModificacion,
+                    FechaFinalizacion = encontrado.FechaFinalizacion
+                };
+                existeEntregable= true;
+                textoBotonGuardar = "Actualizar";
+                mensaje = "Producto cargado en el formulario.";
+                claseAviso = "alert alert-success";
+            }
+            else
+            {
+                // NO ENCONTRADO: Resetea el estado a "crear"
+                existeEntregable = false;
+                textoBotonGuardar = "Crear";
+                mensaje = "Producto no encontrado.";
+                claseAviso = "alert alert-warning";
+            }
+        }
+        catch (Exception error)
+        {
+            // Error: Resetea a estado seguro
+            existeEntregable = false;
+            textoBotonGuardar = "Crear";
+            mensaje = $"Error al buscar producto: {error.Message}";
+            claseAviso = "alert alert-danger";
+        }
+    }
+
+    /// <summary>
+    /// LÓGICA INTELIGENTE: Decide si crear o actualizar según el estado
+    /// Se ejecuta cuando se envía el formulario (OnValidSubmit)
+    /// </summary>
+    private async Task GuardarSegunEstado()
+    {
+        if (existeEntregable)
+            await ActualizarEntregable();
+        else
+            await CrearEntregable();
+    }
+
+    /// <summary>
+    /// CREAR: Crea un nuevo producto
+    /// HTTP POST /api/producto
+    /// </summary>
+    private async Task CrearEntregable()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            var cliente = fabricaHttp.CreateClient("ApiEntregables");
+
+            // PostAsJsonAsync: Serializa el objeto a JSON y hace POST
+            var respuesta = await cliente.PostAsJsonAsync(urlBaseApi, entregableActual);
+
+            // IsSuccessStatusCode: Verifica códigos HTTP 200-299
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "Producto creado correctamente.";
+                claseAviso = "alert alert-success";
+
+                // Refresca la lista para mostrar el nuevo producto
+                await CargarEntregables();
+
+                // Limpia el formulario para una nueva creación
+                entregableActual = new Entregable();
+                existeEntregable = false;
+                textoBotonGuardar = "Crear";
+            }
+            else
+            {
+                // Error HTTP: Lee el detalle del error
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"No se pudo crear el producto. Detalle: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception error)
+        {
+            mensaje = $"Error al crear producto: {error.Message}";
+            claseAviso = "alert alert-danger";
+        }
+    }
+
+    /// <summary>
+    /// ACTUALIZAR: Actualiza un producto existente
+    /// HTTP PUT /api/producto/Id/{Id}
+    /// </summary>
+    private async Task ActualizarEntregable()
+    {
+        LimpiarMensajes();
+
+        if (entregableActual.Id <= 0)
+        {
+            mensaje = "Debe indicar el código para actualizar.";
+            claseAviso = "alert alert-warning";
+            return;
+        }
+
+        try
+        {
+            var cliente = fabricaHttp.CreateClient("ApiEntregables");
+
+            // PUT requiere el código en la URL y el objeto completo en el body
+            var ruta = $"{urlBaseApi}/Id/{entregableActual.Id}";
+            var respuesta = await cliente.PutAsJsonAsync(ruta, entregableActual);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "Producto actualizado correctamente.";
+                claseAviso = "alert alert-success";
+
+                // Refresca la lista para mostrar los cambios
+                await CargarEntregables();
+
+                // Mantiene el producto en el formulario (no limpia)
+                existeEntregable = true;
+                textoBotonGuardar = "Actualizar";
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"No se pudo actualizar el producto. Detalle: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception error)
+        {
+            mensaje = $"Error al actualizar producto: {error.Message}";
+            claseAviso = "alert alert-danger";
+        }
+    }
+
+    /// <summary>
+    /// ELIMINAR: Elimina un producto existente
+    /// HTTP DELETE /api/producto/Id/{Id}
+    /// </summary>
+    private async Task EliminarEntregable()
+    {
+        LimpiarMensajes();
+
+        if (entregableActual.Id <= 0)
+        {
+            mensaje = "Debe indicar el código para eliminar.";
+            claseAviso = "alert alert-warning";
+            return;
+        }
+
+        try
+        {
+            var cliente = fabricaHttp.CreateClient("ApiEntregables");
+
+            // DELETE solo necesita el código en la URL
+            var ruta = $"{urlBaseApi}/Id/{entregableActual.Id}";
+            var respuesta = await cliente.DeleteAsync(ruta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "Producto eliminado correctamente.";
+                claseAviso = "alert alert-success";
+
+                // Refresca la lista (ya no aparecerá el producto eliminado)
+                await CargarEntregables();
+
+                // Limpia completamente el formulario
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"No se pudo eliminar el producto. Detalle: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception error)
+        {
+            mensaje = $"Error al eliminar producto: {error.Message}";
+            claseAviso = "alert alert-danger";
+        }
+    }
+
+    // =============================================================================
+    // MÉTODOS AUXILIARES Y DE UTILIDAD
+    // =============================================================================
+
+    /// <summary>
+    /// Prueba la conectividad con la API sin procesar datos
+    /// Útil para diagnóstico de problemas de red
+    /// </summary>
+    private async Task ProbarConexion()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            var cliente = fabricaHttp.CreateClient("ApiEntregables");
+
+            // Solo hace GET sin deserializar, para probar conectividad
+            var respuesta = await cliente.GetAsync(urlBaseApi);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "Conexión con la API verificada.";
+                claseAviso = "alert alert-success";
+            }
+            else
+            {
+                mensaje = $"La API respondió con estado {(int)respuesta.StatusCode}.";
+                claseAviso = "alert alert-warning";
+            }
+        }
+        catch (Exception error)
+        {
+            mensaje = $"Error de conexión a la API: {error.Message}";
+            claseAviso = "alert alert-danger";
+        }
+    }
+
+    /// <summary>
+    /// Carga un producto de la tabla en el formulario para edición
+    /// Se ejecuta cuando el usuario hace clic en "Cargar" en la tabla
+    /// </summary>
+    /// <param name="p">El producto seleccionado de la tabla</param>
+    private void CargarEnFormulario(Entregable e)
+    {
+        // Crea una NUEVA instancia para evitar referencias compartidas
+        // Si asignaras directamente (productoActual = p), cualquier cambio
+        // en el formulario modificaría también el objeto en la lista
+        entregableActual = new Entregable
+        {
+            Id = e.Id,
+            Codigo = e.Codigo,
+            Titulo = e.Titulo,
+            Descripcion = e.Descripcion,
+            FechaInicio = e.FechaInicio,
+            FechaFinPrevista = e.FechaFinPrevista,
+            FechaModificacion = e.FechaModificacion,
+            FechaFinalizacion = e.FechaFinalizacion,
+        };
+
+        // Cambia el estado a "producto existente"
+        existeEntregable = true;
+        textoBotonGuardar = "Actualizar";
+        mensaje = "Producto seleccionado desde el listado.";
+        claseAviso = "alert alert-info";
+    }
+
+    /// <summary>
+    /// Limpia solo los mensajes de estado, mantiene los datos
+    /// </summary>
+    private void LimpiarMensajes()
+    {
+        mensaje = "";
+        claseAviso = "alert alert-info";
+    }
+
+    /// <summary>
+    /// Resetea completamente el formulario a estado inicial
+    /// </summary>
+    private void LimpiarFormulario()
+    {
+        entregableActual = new Entregable();
+        existeEntregable = false;
+        textoBotonGuardar = "Crear";
+        LimpiarMensajes();
+    }
+}

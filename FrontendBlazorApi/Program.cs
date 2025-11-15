@@ -47,6 +47,13 @@ builder.Services.AddHttpClient("ApiTipoResponsables", cliente =>
 {
     cliente.BaseAddress = new Uri("http://localhost:5031/");
 });
+
+builder.Services.AddHttpClient("ApiProyecto", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5031/"); // ajusta al puerto real de tu API
+});
+
+
 /*
  // Política CORS opcional. Útil solo si el navegador llamara
  // directamente a la API externa. Para Blazor Server no es necesario

@@ -1,0 +1,960 @@
+@page "/presupuesto"
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Linq
+@using System.ComponentModel.DataAnnotations
+@inject IHttpClientFactory fabricaHttp
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Presupuesto</PageTitle>
+
+<div class="container-fluid py-3">
+    <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-receipt fs-2 text-primary me-3"></i>
+        <h3 class="mb-0">Gestión de Presupuesto</h3>
+    </div>
+
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                        background: linear-gradient(to bottom, #414448, #646c7d);
+                        border: 1px solid #6a6a6c;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="ProbarConexion" title="Probar conexión con la API" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Probar Conexión</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                        background: linear-gradient(to bottom, #357de9, #8ea6e0);
+                        border: 1px solid #8ea6e0;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="CargarPresupuestos" title="Mostrar todos los responsables" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Mostrar Todos</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-black fw-semibold" style="
+                        background: linear-gradient(to bottom, #ffffff, #c3cde7);
+                        border: 1px solid #dde5f8;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="LimpiarFormulario" title="Limpiar formulario" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Limpiar</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="@claseAviso shadow-sm" role="alert">
+            <i class="bi bi-info-circle me-2"></i>@mensaje
+        </div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-clipboard-plus me-2"></i>Formulario de Presupuesto</h4>
+        </div>
+        <div class="card-body">
+            <EditForm EditContext="editContext" OnValidSubmit="GuardarSegunEstado">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Id
+                        </label>
+                        <InputNumber class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.Id" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person text-primary"></i> Proyecto
+                        </label>
+                        <InputSelect class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.FkIdProyecto">
+                            <option value="0">-- Seleccione --</option>
+                            @foreach (var c in listaProyectos)
+                            {
+                                <option value="@c.Id">@c.Titulo (ID: @c.Id)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Monto Solicitado
+                        </label>
+                        <InputNumber class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.MontoSolicitado" />
+                    </div>
+                     <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Estado
+                        </label>
+                        <InputText class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.Estado" />
+                    </div>
+                </div>
+
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Monto Aprobado
+                        </label>
+                        <InputNumber class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.MontoAprobado" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Periodo
+                        </label>
+                        <InputNumber class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.PeriodoAnio" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Fecha Solicitud
+                        </label>
+                        <InputDate class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.FechaSolicitud" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Fecha Aprobacion
+                        </label>
+                        <InputDate class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.FechaAprobacion" />
+                    </div>
+                </div>
+
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Observaciones
+                        </label>
+                        <InputText class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="presupuestoActual.Observaciones" />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                    <button type="submit"
+                        class="btn-create d-flex align-items-center gap-1 text-white font-weight-bold border border-success rounded-pill px-4 py-2">
+                        <img src="icons/paper-plane-solid.svg" alt="Guardar" width="24" height="24" class="me-1" />
+                        @textoBotonGuardar
+                    </button>
+                    <button type="button"
+                        class="btn-buscar d-flex align-items-center gap-1 text-white font-weight-bold border border-secondary rounded-pill px-4 py-2"
+                        @onclick="BuscarPorNumero" title="Buscar responsable por número">
+                        <img src="icons/magnifying-glass-solid.svg" alt="Buscar" width="24" height="24" class="me-1" />
+                        Buscar
+                    </button>
+
+                    <button type="button"
+                        class="btn-eliminar d-flex align-items-center gap-1 text-white font-weight-bold border border-danger rounded-pill px-4 py-2"
+                        @onclick="EliminaPresupuesto" disabled="@(!existeObjetivo)" title="Eliminar responsable">
+                        <img src="icons/trash-can-solid.svg" alt="Eliminar" width="24" height="24" class="me-1" />
+                        Eliminar
+                    </button>
+
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-table me-2"></i>Lista de Responsables</h4>
+        </div>
+        <div class="card-body">
+            @if (cargando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-3"><em>Cargando Responsables...</em></p>
+                </div>
+            }
+            else if (listaPresupuestos.Count == 0)
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>No hay ResponsableEntregables disponibles.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-primary">
+                            <tr>
+                                <th><i class="bi bi-person me-1"></i>Id</th>
+                                <th><i class="bi bi-person-badge me-1"></i>Proyecto</th>
+                                <th><i class="bi bi-gear me-1"></i>Monto Solicitado</th>
+                                <th><i class="bi bi-gear me-1"></i>Monto Aprobado</th>
+                                <th><i class="bi bi-gear me-1"></i>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in listaPresupuestos)
+                            {
+                                <tr>
+                                    <td>@p.Id</td>
+                                    <td>@(string.IsNullOrWhiteSpace(p.Proyecto) ? p.IdProyecto?.ToString() : p.Proyecto)</td>
+                                    <td>@p.MontoSolicitado</td>
+                                    <td>@p.MontoAprobado</td>
+                                    <td>
+                                        <button class="btn-cargar d-flex align-items-center gap-1 text-white font-weight-bold border border-primary rounded-pill px-4 py-2"
+                                            @onclick="@(async () => await CargarPresupuestoCompleta(p.IdProyecto.Value))"
+                                            title="Cargar Presupuesto en formulario">
+                                            <img src="icons/spinner-solid.svg" alt="Cargar" width="24" height="24" class="me-1" />
+                                            Cargar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private EditContext? editContext;
+    private List<PresupuestoCompleta> listaPresupuestos = new();
+    private List<ProyectoDto> listaProyectos = new();
+
+    private PresupuestoDto presupuestoActual { get; set; } = new();
+
+    private bool existeObjetivo = false;
+    private string textoBotonGuardar = "Crear";
+    private string mensaje = "";
+    private string claseAviso = "alert alert-info";
+    private bool cargando = false;
+
+    private const string urlProcedimientos = "api/procedimientos/ejecutarsp";
+    private const string urlConsultas = "api/consultas/ejecutarconsultaparametrizada";
+    private const string urlPresupuestos = "api/Presupuesto";
+    private const string urlProyecto = "api/Proyecto";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // inicializa EditContext para que el EditForm lo use
+        editContext = new EditContext(presupuestoActual);
+
+        // Cargar variables primero para evitar race conditions al mapear nombres.
+        await CargarProyectos();
+        await CargarPresupuestos();
+    }
+
+    private async Task CargarProyectos()
+    {
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+            var respuesta = await client.GetFromJsonAsync<RespuestaApi<List<Dictionary<string, object>>>>(urlProyecto);
+
+            listaProyectos = respuesta?.Datos?.Select(d =>
+            {
+                var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+                return new ProyectoDto
+                {
+                    Id = ObtenerInt(normal, "id"),
+                    Titulo = ObtenerString(normal, "titulo") // si existe
+                };
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error cargando Products: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Error CargarProyectos: {ex}");
+        }
+    }
+
+    private async Task CargarPresupuestos()
+    {
+        try
+        {
+            cargando = true;
+            StateHasChanged();
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametrosConsulta = new Dictionary<string, object?>
+            {
+                ["consulta"] = @"
+                    SELECT
+                        p.Id,
+                        p.IdProyecto AS idproyecto,
+                        p.MontoSolicitado,
+                        p.Estado,
+                        p.MontoAprobado,
+                        p.PeriodoAnio,
+                        p.FechaSolicitud,
+                        p.FechaAprobacion,
+                        p.Observaciones
+                    FROM Presupuesto p 
+                    ORDER BY p.Id DESC",
+                ["parametros"] = new Dictionary<string, object?>()
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlConsultas, parametrosConsulta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaConsulta>();
+
+                listaPresupuestos = resultado?.Resultados?.Select(d =>
+                {
+                    var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+
+                    var id = ObtenerInt(normal, "id");
+                    var fkProyecto = ObtenerInt(normal, "idproyecto");
+                    var montoSolicitado = ObtenerDecimal(normal, "montosolicitado");
+                    var estado = ObtenerString(normal, "estado");
+                    var montoAprobado = ObtenerDecimal(normal, "montoaprobado");
+                    var periodoAnio = ObtenerInt(normal, "periodoanio");
+                    var fechaSolicitud = ObtenerDateTime(normal, "fechasolicitud");
+                    var fechaAprobacion = ObtenerDateTime(normal, "fechaaprobacion");
+                    var observaciones = ObtenerString(normal, "observaciones");
+
+                    var tipoTitulo = listaProyectos.FirstOrDefault(x => x.Id == fkProyecto)?.Titulo ?? "";
+
+                    return new PresupuestoCompleta
+                    {
+                        Id = id,
+                        IdProyecto = fkProyecto,
+                        MontoSolicitado = montoSolicitado,
+                        Estado = estado,
+                        MontoAprobado = montoAprobado,
+                        PeriodoAnio = periodoAnio,
+                        FechaSolicitud = fechaSolicitud,
+                        FechaAprobacion = fechaAprobacion,
+                        Observaciones = observaciones
+                    };
+
+                }).ToList() ?? new();
+
+                mensaje = $"Se cargaron {listaPresupuestos.Count} asociaciones Presupuesto.";
+                claseAviso = "alert alert-success";
+                StateHasChanged();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"❌ Error al cargar Presupuesto: {detalle}";
+                claseAviso = "alert alert-danger";
+                Console.WriteLine($"Detalle CargarPresupuestos: {detalle}");
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al listar Presupuesto: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CargarPresupuestos: {ex}");
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+
+    private async Task BuscarPorNumero()
+    {
+        LimpiarMensajes();
+
+        if (presupuestoActual.Id <= 0)
+        {
+            mensaje = "Debe indicar el número de Presupuesto.";
+            claseAviso = "alert alert-warning";
+            return;
+        }
+
+        await CargarPresupuestoCompleta(presupuestoActual.Id);
+    }
+
+    private async Task CargarPresupuestoCompleta(int numeroPresupuesto)
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "consultar_presupuesto",
+                ["Id"] = numeroPresupuesto
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"❌ Error al cargar responsable: {detalle}";
+                claseAviso = "alert alert-danger";
+                return;
+            }
+
+            var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaSP>();
+
+            if (resultado?.Resultados == null || resultado.Resultados.Count == 0)
+            {
+                mensaje = "Presupuesto no encontrado.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var primeraFila = resultado.Resultados[0];
+
+            // 1) Si la fila contiene una clave "Resultado" con JSON -> deserializar
+            if (primeraFila.TryGetValue("Resultado", out var val) && val != null)
+            {
+                var json = val.ToString();
+                if (!string.IsNullOrWhiteSpace(json))
+                {
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var objetivoDesdeJson = JsonSerializer.Deserialize<PresupuestoCompleta>(json, options);
+                    if (objetivoDesdeJson != null)
+                    {
+                        await PoblarDtoDesdeCompleta(objetivoDesdeJson);
+                        return;
+                    }
+                }
+            }
+
+            // 2) Si la fila ya viene con columnas (id, nombre, fkidresponsable, fkidentregable) -> mapear directamente
+            var normal = primeraFila.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+            if (normal.Count > 0)
+            {
+                var id = ObtenerInt(normal, "id");
+                var fkproyecto = ObtenerInt(normal, "fkproyecto");
+                var montoSolicitado = ObtenerDecimal(normal, "montosolicitado");
+                var estado = ObtenerString(normal, "estado");
+                var montoAprobado = ObtenerDecimal(normal, "montoaprobado");
+                var periodoAnio = ObtenerInt(normal, "periodoanio");
+                var fechaSolicitud = ObtenerDateTime(normal, "fechasolicitud");
+                var fechaAprobacion = ObtenerDateTime(normal, "fechaaprobacion");
+                var observaciones = ObtenerString(normal, "observaciones");
+
+                presupuestoActual = new PresupuestoDto
+                {
+                    Id = id,
+                    FkIdProyecto = fkproyecto,
+                    MontoSolicitado = montoSolicitado,
+                    Estado = estado,
+                    MontoAprobado = montoAprobado,
+                    PeriodoAnio = periodoAnio,
+                    FechaSolicitud = fechaSolicitud,
+                    FechaAprobacion = fechaAprobacion,
+                    Observaciones = observaciones
+                };
+
+                existeObjetivo = true;
+                textoBotonGuardar = "Actualizar";
+                mensaje = $"Responsable #{numeroPresupuesto} cargado.";
+                claseAviso = "alert alert-success";
+                StateHasChanged();
+                return;
+            }
+
+            mensaje = "No se pudo interpretar el resultado del procedimiento.";
+            claseAviso = "alert alert-warning";
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar Presupuesto: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CargarPresupuestoCompleta: {ex}");
+        }
+    }
+
+    private async Task GuardarSegunEstado()
+    {
+        if (existeObjetivo)
+            await ActualizarPresupuesto();
+        else
+            await CrearPresupuesto();
+    }
+
+    private async Task CrearPresupuesto()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            // validaciones básicas
+            presupuestoActual.Estado = presupuestoActual.Estado?.Trim() ?? "";
+            presupuestoActual.Observaciones = presupuestoActual.Observaciones?.Trim() ?? "";
+            //presupuestoActual.Nombre = presupuestoActual.Nombre?.Trim() ?? "";
+
+            if (presupuestoActual.FkIdProyecto <= 0)
+            {
+                mensaje = "⚠️ Debe seleccionar Tipo De Proyecto.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            /*if (string.IsNullOrEmpty(presupuestoActual.Nombre))
+            {
+                mensaje = "⚠️ El Nombre es obligatorio.";
+                claseAviso = "alert alert-warning";
+                return;
+            }*/
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            // envio parámetros correctos (antes estaban invertidos)
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "crear_presupuesto",
+                ["IdProyecto"] = presupuestoActual.FkIdProyecto,
+                ["MontoSolicitado"] = presupuestoActual.MontoSolicitado,
+                ["Estado"] = presupuestoActual.Estado,
+                ["MontoAprobado"] = presupuestoActual.MontoAprobado,
+                ["PeriodoAnio"] = presupuestoActual.PeriodoAnio,
+                ["FechaSolicitud"] = presupuestoActual.FechaSolicitud,
+                ["FechaAprobacion"] = presupuestoActual.FechaAprobacion,
+                ["Observaciones"] = presupuestoActual.Observaciones
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable creado exitosamente.";
+                claseAviso = "alert alert-success";
+                await CargarPresupuestos();
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al crear responsable: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al crear Responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CrearPresupuesto: {ex}");
+        }
+    }
+
+    private async Task ActualizarPresupuesto()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            if (presupuestoActual.Id <= 0)
+            {
+                mensaje = "⚠️ Debe indicar el número de Responsable.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var confirmar = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está seguro de actualizar el responsable #{presupuestoActual.Id}?");
+            if (!confirmar)
+            {
+                mensaje = "ℹ️ Actualización cancelada.";
+                claseAviso = "alert alert-info";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "actualizar_presupuesto",
+                ["IdProyecto"] = presupuestoActual.FkIdProyecto,
+                ["MontoSolicitado"] = presupuestoActual.MontoSolicitado,
+                ["Estado"] = presupuestoActual.Estado,
+                ["MontoAprobado"] = presupuestoActual.MontoAprobado,
+                ["PeriodoAnio"] = presupuestoActual.PeriodoAnio,
+                ["FechaSolicitud"] = presupuestoActual.FechaSolicitud,
+                ["FechaAprobacion"] = presupuestoActual.FechaAprobacion,
+                ["Observaciones"] = presupuestoActual.Observaciones,
+                ["Id"] = presupuestoActual.Id
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable actualizado exitosamente.";
+                claseAviso = "alert alert-success";
+
+                // Actualiza la lista local si existe el elemento
+                var item = listaPresupuestos.FirstOrDefault(x => x.Id == presupuestoActual.Id);
+
+                if (item != null)
+                {
+                    item.MontoSolicitado = presupuestoActual.MontoSolicitado;
+                    item.Estado = presupuestoActual.Estado;
+                    item.MontoAprobado = presupuestoActual.MontoAprobado;
+                    item.PeriodoAnio = presupuestoActual.PeriodoAnio;
+                    item.FechaSolicitud = presupuestoActual.FechaSolicitud;
+                    item.FechaAprobacion = presupuestoActual.FechaAprobacion;
+                    item.Observaciones = presupuestoActual.Observaciones;
+
+                    item.Proyecto= listaProyectos.FirstOrDefault(v => v.Id == presupuestoActual.FkIdProyecto)?.Id.ToString()
+                                   ?? presupuestoActual.FkIdProyecto.ToString();
+                    item.IdProyecto= presupuestoActual.FkIdProyecto;
+                    StateHasChanged();
+                }
+
+                // refrescar para mantener consistencia con BD
+                await CargarPresupuestos();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al actualizar: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al actualizar Responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception ActualizarPresupuesto: {ex}");
+        }
+    }
+
+    private async Task EliminaPresupuesto()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            if (presupuestoActual.Id <= 0)
+            {
+                mensaje = "Debe indicar el número de Responsable.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var confirmar = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está seguro de eliminar el responsable #{presupuestoActual.Id}?");
+            if (!confirmar)
+            {
+                mensaje = "Eliminación cancelada.";
+                claseAviso = "alert alert-info";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "eliminar_presupuesto",
+                ["Id"] = presupuestoActual.Id
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable eliminado correctamente.";
+                claseAviso = "alert alert-success";
+                await CargarPresupuestos();
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al eliminar: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al eliminar responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception EliminaPresupuesto: {ex}");
+        }
+    }
+
+    private async Task ProbarConexion()
+    {
+        LimpiarMensajes();
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametrosConsulta = new Dictionary<string, object?>
+            {
+                ["consulta"] = "SELECT COUNT(*) AS total FROM Presupuesto",
+                ["parametros"] = new Dictionary<string, object?>()
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlConsultas, parametrosConsulta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "Conexión con la API y base de datos verificada correctamente.";
+                claseAviso = "alert alert-success";
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"La API respondió pero con error: {detalle}";
+                claseAviso = "alert alert-warning";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error de conexión: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception ProbarConexion: {ex}");
+        }
+    }
+
+    private void LimpiarFormulario()
+    {
+        presupuestoActual.Id = 0;
+        presupuestoActual.FkIdProyecto = 0;
+        presupuestoActual.MontoSolicitado = 0;
+        presupuestoActual.Estado = "";
+        presupuestoActual.MontoAprobado = 0;
+        presupuestoActual.PeriodoAnio = 0;
+        presupuestoActual.FechaSolicitud = DateTime.MinValue;
+        presupuestoActual.FechaAprobacion = DateTime.MinValue;
+        presupuestoActual.Observaciones = "";
+
+        existeObjetivo = false;
+        textoBotonGuardar = "Crear";
+
+        editContext = new EditContext(presupuestoActual);
+
+        LimpiarMensajes();
+        StateHasChanged();
+    }
+
+    private void LimpiarMensajes()
+    {
+        mensaje = "";
+        claseAviso = "alert alert-info";
+    }
+
+    // Helpers robustos para distintos tipos JSON/objetos
+    private int ObtenerInt(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return 0;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt32(out var i)) return i;
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt64(out var l)) return (int)l;
+            if (elem.ValueKind == JsonValueKind.String && int.TryParse(elem.GetString(), out var p)) return p;
+            return 0;
+        }
+
+        if (int.TryParse(valor.ToString(), out var res)) return res;
+        return 0;
+    }
+
+    private decimal ObtenerDecimal(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return 0m;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetDecimal(out var d)) return d;
+            if (elem.ValueKind == JsonValueKind.String && decimal.TryParse(elem.GetString(), out var p)) return p;
+            return 0m;
+        }
+
+        if (decimal.TryParse(valor.ToString(), out var res)) return res;
+        return 0m;
+    }
+
+    private DateTime ObtenerDateTime(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return DateTime.MinValue;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.String && DateTime.TryParse(elem.GetString(), out var d)) return d;
+            return DateTime.MinValue;
+        }
+
+        if (DateTime.TryParse(valor.ToString(), out var res)) return res;
+        return DateTime.MinValue;
+    }
+
+    private string ObtenerString(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return "";
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.String) return elem.GetString() ?? "";
+            return elem.ToString();
+        }
+
+        return valor?.ToString() ?? "";
+    }
+
+    // DTOs / modelos locales
+    private class PresupuestoDto
+    {
+        public int Id { get; set; }  // corresponde a IdResponsableen DB
+        public int FkIdProyecto  { get; set; }
+        public decimal MontoSolicitado { get; set; }
+        public string Estado { get; set; } = "";
+        public decimal MontoAprobado { get; set; }
+        public int PeriodoAnio { get; set; }
+        public DateTime FechaSolicitud { get; set; } = DateTime.MinValue;
+        public DateTime FechaAprobacion { get; set; } = DateTime.MinValue;
+        public string Observaciones { get; set; } = "";
+    }
+
+    private class PresupuestoCompleta
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+        
+        [JsonPropertyName("montoSolicitado")]
+        public decimal MontoSolicitado { get; set; }
+
+        [JsonPropertyName("estado")]
+        public string Estado { get; set; } = "";
+
+        [JsonPropertyName("montoAprobado")]
+        public decimal MontoAprobado { get; set; }
+
+        [JsonPropertyName("periodoAnio")]
+        public int PeriodoAnio { get; set; }
+
+        [JsonPropertyName("fechaSolicitud")]
+        public DateTime FechaSolicitud { get; set; }
+
+        [JsonPropertyName("fechaAprobacion")]
+        public DateTime FechaAprobacion { get; set; }
+
+        [JsonPropertyName("observaciones")]
+        public string Observaciones { get; set; } = "";
+
+
+        // mantengo ambas formas: id y texto legible para flexibilidad
+        public int? IdProyecto { get; set; }
+        public string Proyecto { get; set; } = "";
+    }
+
+    private class RespuestaConsulta
+    {
+        [JsonPropertyName("Resultados")]
+        public List<Dictionary<string, object>>? Resultados { get; set; }
+
+        [JsonPropertyName("Advertencia")]
+        public string? Advertencia { get; set; }
+    }
+
+    private class RespuestaApi<T>
+    {
+        [JsonPropertyName("datos")]
+        public T? Datos { get; set; }
+    }
+
+    private class RespuestaSP
+    {
+        [JsonPropertyName("Procedimiento")]
+        public string? Procedimiento { get; set; }
+
+        [JsonPropertyName("Resultados")]
+        public List<Dictionary<string, object>>? Resultados { get; set; }
+
+        [JsonPropertyName("Total")]
+        public int Total { get; set; }
+
+        [JsonPropertyName("Mensaje")]
+        public string? Mensaje { get; set; }
+    }
+
+    private class ProyectoDto
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = "";
+    }
+
+    private async Task PoblarDtoDesdeCompleta(PresupuestoCompleta completa)
+    {
+        int fkId = 0;
+
+        // Responsable: si viene id directo
+        if (completa.IdProyecto.HasValue)
+        {
+            fkId = completa.IdProyecto.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(completa.Proyecto) && int.TryParse(completa.Proyecto, out var parsedUsu))
+        {
+            fkId = parsedUsu;
+        }
+        else if (!string.IsNullOrWhiteSpace(completa.Proyecto))
+        {
+            var encontradoPorCodigo = listaProyectos.FirstOrDefault(c => c.Id.ToString() == completa.Proyecto);
+            if (encontradoPorCodigo != null) fkId = encontradoPorCodigo.Id;
+        }
+
+        presupuestoActual.Id = completa.Id;
+        presupuestoActual.MontoSolicitado = (decimal)completa.MontoSolicitado;
+        presupuestoActual.Estado = completa.Estado;
+        presupuestoActual.MontoAprobado = (decimal)completa.MontoAprobado;
+        presupuestoActual.PeriodoAnio = completa.PeriodoAnio;
+        presupuestoActual.FechaSolicitud = completa.FechaSolicitud;
+        presupuestoActual.FechaAprobacion = completa.FechaAprobacion;
+        presupuestoActual.Observaciones = completa.Observaciones;
+        presupuestoActual.FkIdProyecto = fkId;
+
+        existeObjetivo = true;
+        textoBotonGuardar = "Actualizar";
+        mensaje = $"Responsable #{completa.IdProyecto} cargado.";
+        claseAviso = "alert alert-success";
+
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.Id)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.FkIdProyecto)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.MontoSolicitado)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.Estado)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.MontoAprobado)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.PeriodoAnio)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.FechaSolicitud)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.FechaAprobacion)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(presupuestoActual, nameof(presupuestoActual.Observaciones)));
+
+        StateHasChanged();
+    }
+}

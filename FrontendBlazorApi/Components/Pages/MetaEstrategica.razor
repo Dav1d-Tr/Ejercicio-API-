@@ -1,0 +1,870 @@
+@page "/metaEstrategica"
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Linq
+@using System.ComponentModel.DataAnnotations
+@inject IHttpClientFactory fabricaHttp
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Metas Estrategicas</PageTitle>
+
+<div class="container-fluid py-3">
+    <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-receipt fs-2 text-primary me-3"></i>
+        <h3 class="mb-0">Gestión de Objetivos Estrategicos</h3>
+    </div>
+
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        @*Boton Probar conexión*@
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3"
+                style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                        background: linear-gradient(to bottom, #414448, #646c7d);
+                        border: 1px solid #6a6a6c;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="ProbarConexion" title="Probar conexión con la API" onmousedown="this.style.transform='scale(0.98)';"
+                    onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Probar Conexión</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        @*Boton Mostrar todos*@
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3"
+                style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                        background: linear-gradient(to bottom, #357de9, #8ea6e0);
+                        border: 1px solid #8ea6e0;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="CargarMetasEstrategicas" title="Mostrar todos los objetivos" onmousedown="this.style.transform='scale(0.98)';"
+                    onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Mostrar Todos</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        @*Boton Limpiar*@
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3"
+                style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-black fw-semibold" style="
+                        background: linear-gradient(to bottom, #ffffff, #c3cde7);
+                        border: 1px solid #dde5f8;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="LimpiarFormulario" title="Limpiar formulario" onmousedown="this.style.transform='scale(0.98)';"
+                    onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Limpiar</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="@claseAviso shadow-sm" role="alert">
+            <i class="bi bi-info-circle me-2"></i>@mensaje
+        </div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-clipboard-plus me-2"></i>Formulario de Objetivo Estrategico</h4>
+        </div>
+        <div class="card-body">
+            <EditForm EditContext="editContext" OnValidSubmit="GuardarSegunEstado">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Id
+                        </label>
+                        <InputNumber class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="metaEstrategicaActual.Id" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person text-primary"></i> Variable Estrategica
+                        </label>
+                        <InputSelect class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="metaEstrategicaActual.FkIdObjetivoEstrategico">
+                            <option value="0">-- Seleccione --</option>
+                            @foreach (var c in listaObjetivosEstrategicos)
+                            {
+                                <option value="@c.Id">@c.Titulo (ID: @c.Id)</option>
+                            }
+                        </InputSelect>
+
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Titulo
+                        </label>
+                        <InputText class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="metaEstrategicaActual.Titulo" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Descripción
+                        </label>
+                        <InputText class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="metaEstrategicaActual.Descripcion" />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                    <button type="submit"
+                        class="btn-create d-flex align-items-center gap-1 text-white font-weight-bold border border-success rounded-pill px-4 py-2">
+                        <img src="icons/paper-plane-solid.svg" alt="Guardar" width="24" height="24" class="me-1" />
+                        @textoBotonGuardar
+                    </button>
+                    <button type="button"
+                        class="btn-buscar d-flex align-items-center gap-1 text-white font-weight-bold border border-secondary rounded-pill px-4 py-2"
+                        @onclick="BuscarPorNumero" title="Buscar objetivo por número">
+                        <img src="icons/magnifying-glass-solid.svg" alt="Buscar" width="24" height="24" class="me-1" />
+                        Buscar
+                    </button>
+
+                    <button type="button"
+                        class="btn-eliminar d-flex align-items-center gap-1 text-white font-weight-bold border border-danger rounded-pill px-4 py-2"
+                        @onclick="EliminaMetaEstrategica" disabled="@(!existeObjetivo)" title="Eliminar objetivo">
+                        <img src="icons/trash-can-solid.svg" alt="Eliminar" width="24" height="24" class="me-1" />
+                        Eliminar
+                    </button>
+                </div>
+                
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-table me-2"></i>Lista de Objetivos Estrategicos</h4>
+        </div>
+        <div class="card-body">
+            @if (cargando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-3"><em>Cargando Objetivos Estrategicos...</em></p>
+                </div>
+            }
+            else if (listaMetasEstrategicas.Count == 0)
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>No hay Objetivos Estrategicos disponibles.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-primary">
+                            <tr>
+                                <th><i class="bi bi-hash me-1"></i>Id</th>
+                                <th><i class="bi bi-person me-1"></i>Objetivo Estrategico</th>
+                                <th><i class="bi bi-person-badge me-1"></i>Titulo</th>
+                                <th><i class="bi bi-calendar me-1"></i>Descripción</th>
+                                <th><i class="bi bi-gear me-1"></i>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in listaMetasEstrategicas)
+                            {
+                                <tr>
+                                    <td>@f.Id</td>
+                                    <td>@f.ObjetivoEstrategico</td> <!-- antes tenías IdObjetivo -->
+                                    <td>@f.Titulo</td>
+                                    <td>@f.Descripcion</td>
+                                    <td>
+                                        <button class="btn-cargar d-flex align-items-center gap-1 text-white font-weight-bold border border-primary rounded-pill px-4 py-2"
+                                                @onclick="@(async () => await CargarMetaEstrategicaCompleta(f.Id))" 
+                                                title="Cargar Objetivo en formulario">
+                                            <img src="icons/spinner-solid.svg" alt="Cargar" width="24" height="24" class="me-1" />
+                                            Cargar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private EditContext? editContext;
+    private List<MetaEstrategicaCompleta> listaMetasEstrategicas = new();
+    private List<ObjetivoEstrategicoDto> listaObjetivosEstrategicos = new();
+
+    private MetaEstrategicaDto metaEstrategicaActual { get; set; } = new();
+
+    private bool existeObjetivo = false;
+    private string textoBotonGuardar = "Crear";
+    private string mensaje = "";
+    private string claseAviso = "alert alert-info";
+    private bool cargando = false;
+
+    private const string urlProcedimientos = "api/procedimientos/ejecutarsp";
+    private const string urlConsultas = "api/consultas/ejecutarconsultaparametrizada";
+    private const string urlMetasEstrategicas = "api/MetaEstrategica";
+    private const string urlObjetivosEstrategicos = "api/ObjetivoEstrategico";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // inicializa EditContext para que el EditForm lo use
+        editContext = new EditContext(metaEstrategicaActual);
+
+        // Cargar variables primero para evitar race conditions al mapear nombres.
+        await CargarObjetivosEstrategicos();
+        await CargarMetasEstrategicas();
+    }
+
+    private async Task CargarDatosIniciales()
+    {
+        // Mantenido por compatibilidad en caso de uso futuro
+        await CargarObjetivosEstrategicos();
+        await CargarMetasEstrategicas();
+    }
+
+    private async Task CargarObjetivosEstrategicos()
+    {
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+            var respuesta = await client.GetFromJsonAsync<RespuestaApi<List<Dictionary<string, object>>>>(urlObjetivosEstrategicos);
+
+            listaObjetivosEstrategicos = respuesta?.Datos?.Select(d =>
+            {
+                // normaliza keys por seguridad
+                var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+                return new ObjetivoEstrategicoDto
+                {
+                    Id = ObtenerInt(normal, "id"),
+                    Titulo = ObtenerString(normal, "titulo")
+                };
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            // Al menos informar al usuario
+            mensaje = $"Error cargando variables: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Error CargarObjetivosEstrategicos: {ex}");
+        }
+    }
+
+    private async Task CargarMetasEstrategicas()
+    {
+        try
+        {
+            cargando = true;
+            StateHasChanged();
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            // IMPORTANTE: aliaso IdObjetivo como fkidvariableestrategica para que el mapping existente funcione
+            
+            var parametrosConsulta = new Dictionary<string, object?>
+            {
+                ["consulta"] = @"
+                    SELECT 
+                        f.id, 
+                        f.IdObjetivo AS fkidobjetivoestrategico, 
+                        f.titulo, 
+                        f.descripcion
+                    FROM MetaEstrategica f 
+                    ORDER BY f.id DESC",
+                ["parametros"] = new Dictionary<string, object?>()
+            };
+
+
+            var respuesta = await client.PostAsJsonAsync(urlConsultas, parametrosConsulta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaConsulta>();
+
+                listaMetasEstrategicas = resultado?.Resultados?.Select(d =>
+                {
+                    // normaliza claves a minúsculas para evitar problemas con casing
+                    var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+
+                    var id = ObtenerInt(normal, "id");
+                    var fkVar = ObtenerInt(normal, "fkidobjetivoestrategico");
+                    var titulo = ObtenerString(normal, "titulo");
+                    var descripcion = ObtenerString(normal, "descripcion");
+
+                    var nombreVar = listaObjetivosEstrategicos.FirstOrDefault(x => x.Id == fkVar)?.Titulo ?? fkVar.ToString();
+
+                    return new MetaEstrategicaCompleta
+                    {
+                        Id = id,
+                        ObjetivoEstrategico = nombreVar,
+                        Titulo = titulo,
+                        Descripcion = descripcion
+                    };
+
+                }).ToList() ?? new();
+                StateHasChanged(); 
+
+                mensaje = $"Se cargaron {listaMetasEstrategicas.Count} Objetivo Estrategico(s).";
+                claseAviso = "alert alert-success";
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"❌ Error al cargar Objetivos: {detalle}";
+                claseAviso = "alert alert-danger";
+                Console.WriteLine($"Detalle CargarMetasEstrategicas: {detalle}");
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al listar Objetivos Estrategicos: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CargarMetasEstrategicas: {ex}");
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task BuscarPorNumero()
+    {
+        LimpiarMensajes();
+
+        if (metaEstrategicaActual.Id <= 0)
+        {
+            mensaje = "Debe indicar el número de Objetivo Estrategico.";
+            claseAviso = "alert alert-warning";
+            return;
+        }
+
+        await CargarMetaEstrategicaCompleta(metaEstrategicaActual.Id);
+    }
+
+    private async Task CargarMetaEstrategicaCompleta(int numeroMetaEstrategica)
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "consultar_meta_estrategica",
+                ["Id"] = numeroMetaEstrategica
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"❌ Error al cargar objetivo: {detalle}";
+                claseAviso = "alert alert-danger";
+                return;
+            }
+
+            var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaSP>();
+
+            if (resultado?.Resultados == null || resultado.Resultados.Count == 0)
+            {
+                mensaje = "Objetivo Estrategico no encontrado.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var primeraFila = resultado.Resultados[0];
+
+            // 1) Si la fila contiene una clave "Resultado" con JSON -> deserializar
+            if (primeraFila.TryGetValue("Resultado", out var val) && val != null)
+            {
+                var json = val.ToString();
+                if (!string.IsNullOrWhiteSpace(json))
+                {
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var objetivoDesdeJson = JsonSerializer.Deserialize<MetaEstrategicaCompleta>(json, options);
+                    if (objetivoDesdeJson != null)
+                    {
+                        await PoblarDtoDesdeCompleta(objetivoDesdeJson);
+                        return;
+                    }
+                }
+            }
+
+            // 2) Si la fila ya viene con columnas (id, titulo, descripcion, variable) -> mapear directamente
+            var normal = primeraFila.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+            if (normal.Count > 0)
+            {
+                var id = ObtenerInt(normal, "id");
+                var titulo = ObtenerString(normal, "titulo");
+                var descripcion = ObtenerString(normal, "descripcion");
+
+                // variable puede venir como nombre o como id (IdObjetivo o variable)
+                var variableStr = ObtenerString(normal, "objetivo");
+                if (string.IsNullOrEmpty(variableStr))
+                    variableStr = ObtenerString(normal, "idobjetivo"); // fallback
+                int fkId = 0;
+                var encontradoPorTitulo = listaObjetivosEstrategicos.FirstOrDefault(c => c.Titulo == variableStr);
+                if (encontradoPorTitulo != null)
+                    fkId = encontradoPorTitulo.Id;
+                else if (int.TryParse(variableStr, out var parsed))
+                    fkId = parsed;
+
+                metaEstrategicaActual = new MetaEstrategicaDto
+                {
+                    Id = id,
+                    Titulo = titulo ?? "",
+                    FkIdObjetivoEstrategico = fkId,
+                    Descripcion = descripcion ?? ""
+                };
+
+                existeObjetivo = true;
+                textoBotonGuardar = "Actualizar";
+                mensaje = $"Objetivo Estrategico #{numeroMetaEstrategica} cargado.";
+                claseAviso = "alert alert-success";
+                StateHasChanged();
+                return;
+            }
+
+            mensaje = "No se pudo interpretar el resultado del procedimiento.";
+            claseAviso = "alert alert-warning";
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar Objetivo Estrategico: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CargarMetaEstrategicaCompleta: {ex}");
+        }
+    }
+
+    private async Task GuardarSegunEstado()
+    {
+        if (existeObjetivo)
+            await ActualizarMetaEstrategica();
+        else
+            await CrearMetaEstrategica();
+    }
+
+    private async Task CrearMetaEstrategica()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            // validaciones básicas
+            metaEstrategicaActual.Titulo = metaEstrategicaActual.Titulo?.Trim() ?? "";
+            metaEstrategicaActual.Descripcion = metaEstrategicaActual.Descripcion?.Trim() ?? "";
+
+            if (metaEstrategicaActual.FkIdObjetivoEstrategico <= 0)
+            {
+                mensaje = "⚠️ Debe seleccionar Variable Estrategica.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            if (string.IsNullOrEmpty(metaEstrategicaActual.Titulo))
+            {
+                mensaje = "⚠️ El título es obligatorio.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            // envío los parámetros con los nombres exactos que espera el SP en SQL Server
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "crear_meta_estrategica",
+                ["IdObjetivo"] = metaEstrategicaActual.FkIdObjetivoEstrategico,
+                ["Titulo"] = metaEstrategicaActual.Titulo,
+                ["Descripcion"] = metaEstrategicaActual.Descripcion
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Objetivo Estrategico creado exitosamente.";
+                claseAviso = "alert alert-success";
+                await CargarMetasEstrategicas();
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle); // ayuda a debugging en el servidor
+                mensaje = $"❌ Error al crear objetivo: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al crear Objetivo Estrategico: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CrearMetaEstrategica: {ex}");
+        }
+    }
+
+    private async Task ActualizarMetaEstrategica()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            if (metaEstrategicaActual.Id <= 0)
+            {
+                mensaje = "⚠️ Debe indicar el número de Objetivo Estrategico.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var confirmar = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está seguro de actualizar el objetivo #{metaEstrategicaActual.Id}?");
+            if (!confirmar)
+            {
+                mensaje = "ℹ️ Actualización cancelada.";
+                claseAviso = "alert alert-info";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "actualizar_meta_estrategica",
+                ["IdObjetivo"] = metaEstrategicaActual.FkIdObjetivoEstrategico,
+                ["Titulo"] = metaEstrategicaActual.Titulo,
+                ["Descripcion"] = metaEstrategicaActual.Descripcion,
+                ["Id"] = metaEstrategicaActual.Id
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Objetivo Estrategico actualizado exitosamente.";
+                claseAviso = "alert alert-success";
+
+                // Actualiza la lista local si existe el elemento
+                var item = listaMetasEstrategicas.FirstOrDefault(x => x.Id == metaEstrategicaActual.Id);
+                if (item != null)
+                {
+                    item.Titulo = metaEstrategicaActual.Titulo;
+                    item.Descripcion = metaEstrategicaActual.Descripcion;
+                    item.ObjetivoEstrategico = listaObjetivosEstrategicos
+                        .FirstOrDefault(v => v.Id == metaEstrategicaActual.FkIdObjetivoEstrategico)?.Titulo
+                        ?? metaEstrategicaActual.FkIdObjetivoEstrategico.ToString();
+                    StateHasChanged();
+                }
+
+                // opcional: refrescar toda la lista para garantizar consistencia con BD
+                await CargarMetasEstrategicas();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al actualizar: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al actualizar Objetivo Estrategico: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception ActualizarMetaEstrategica: {ex}");
+        }
+    }
+
+    private async Task EliminaMetaEstrategica()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            if (metaEstrategicaActual.Id <= 0)
+            {
+                mensaje = "Debe indicar el número de Objetivo Estrategico.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var confirmar = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está seguro de eliminar el objetivo #{metaEstrategicaActual.Id}?");
+            if (!confirmar)
+            {
+                mensaje = "Eliminación cancelada.";
+                claseAviso = "alert alert-info";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "eliminar_meta_estrategica",
+                ["Id"] = metaEstrategicaActual.Id
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Objetivo eliminado correctamente.";
+                claseAviso = "alert alert-success";
+                await CargarMetasEstrategicas();
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al eliminar: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al eliminar objetivo: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception EliminaMetaEstrategica: {ex}");
+        }
+    }
+
+    private async Task ProbarConexion()
+    {
+        LimpiarMensajes();
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametrosConsulta = new Dictionary<string, object?>
+            {
+                ["consulta"] = "SELECT COUNT(*) AS total FROM MetaEstrategica",
+                ["parametros"] = new Dictionary<string, object?>()
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlConsultas, parametrosConsulta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "Conexión con la API y base de datos verificada correctamente.";
+                claseAviso = "alert alert-success";
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"La API respondió pero con error: {detalle}";
+                claseAviso = "alert alert-warning";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error de conexión: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception ProbarConexion: {ex}");
+        }
+    }
+
+    private void LimpiarFormulario()
+    {
+        // vacía la misma instancia para mantener la referencia
+        metaEstrategicaActual.Id = 0;
+        metaEstrategicaActual.FkIdObjetivoEstrategico = 0;
+        metaEstrategicaActual.Titulo = string.Empty;
+        metaEstrategicaActual.Descripcion = string.Empty;
+
+        existeObjetivo = false;
+        textoBotonGuardar = "Crear";
+
+        // recrea EditContext si quieres resetear validaciones
+        editContext = new EditContext(metaEstrategicaActual);
+
+        LimpiarMensajes();
+        StateHasChanged();
+    }
+
+
+    private void LimpiarMensajes()
+    {
+        mensaje = "";
+        claseAviso = "alert alert-info";
+    }
+
+    // Helpers robustos para distintos tipos JSON/objetos
+    private int ObtenerInt(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return 0;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt32(out var i)) return i;
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt64(out var l)) return (int)l;
+            if (elem.ValueKind == JsonValueKind.String && int.TryParse(elem.GetString(), out var p)) return p;
+            return 0;
+        }
+
+        if (int.TryParse(valor.ToString(), out var res)) return res;
+        return 0;
+    }
+
+    private decimal ObtenerDecimal(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return 0m;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetDecimal(out var d)) return d;
+            if (elem.ValueKind == JsonValueKind.String && decimal.TryParse(elem.GetString(), out var p)) return p;
+            return 0m;
+        }
+
+        if (decimal.TryParse(valor.ToString(), out var res)) return res;
+        return 0m;
+    }
+
+    private DateTime ObtenerDateTime(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return DateTime.MinValue;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.String && DateTime.TryParse(elem.GetString(), out var d)) return d;
+            return DateTime.MinValue;
+        }
+
+        if (DateTime.TryParse(valor.ToString(), out var res)) return res;
+        return DateTime.MinValue;
+    }
+
+    private string ObtenerString(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return "";
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.String) return elem.GetString() ?? "";
+            // si viene número u otro tipo, devolver ToString
+            return elem.ToString();
+        }
+
+        return valor?.ToString() ?? "";
+    }
+
+    private class MetaEstrategicaDto
+    {
+        public int Id { get; set; }
+        public int FkIdObjetivoEstrategico { get; set; }  // corresponde a IdVariable
+        public string Titulo { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+    }
+
+    private class MetaEstrategicaCompleta
+    {
+        // Puede venir con distintos nombres desde SP/consulta; PropertyNameCaseInsensitive = true facilitará el mapeo
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("titulo")]
+        public string Titulo { get; set; } = "";
+
+        [JsonPropertyName("descripcion")]
+        public string Descripcion { get; set; } = "";
+
+        [JsonPropertyName("variable")]
+        public string? ObjetivoEstrategico { get; set; } = "";
+    }
+
+    private class RespuestaConsulta
+    {
+        [JsonPropertyName("Resultados")]
+        public List<Dictionary<string, object>>? Resultados { get; set; }
+
+        [JsonPropertyName("Advertencia")]
+        public string? Advertencia { get; set; }
+    }
+
+    private class RespuestaApi<T>
+    {
+        [JsonPropertyName("datos")]
+        public T? Datos { get; set; }
+    }
+
+    private class RespuestaSP
+    {
+        [JsonPropertyName("Procedimiento")]
+        public string? Procedimiento { get; set; }
+
+        [JsonPropertyName("Resultados")]
+        public List<Dictionary<string, object>>? Resultados { get; set; }
+
+        [JsonPropertyName("Total")]
+        public int Total { get; set; }
+
+        [JsonPropertyName("Mensaje")]
+        public string? Mensaje { get; set; }
+    }
+
+    private class ObjetivoEstrategicoDto
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = "";
+    }
+
+    private async Task PoblarDtoDesdeCompleta(MetaEstrategicaCompleta completa)
+    {
+        int fkId = 0;
+        var encontradoPorTitulo = listaObjetivosEstrategicos.FirstOrDefault(c => c.Titulo == completa.ObjetivoEstrategico);
+        if (encontradoPorTitulo != null)
+            fkId = encontradoPorTitulo.Id;
+        else if (int.TryParse(completa.ObjetivoEstrategico, out var parsed))
+            fkId = parsed;
+
+        // ---> actualiza la instancia existente (no la reemplaces)
+        metaEstrategicaActual.Id = completa.Id;
+        metaEstrategicaActual.Titulo = completa.Titulo ?? "";
+        metaEstrategicaActual.FkIdObjetivoEstrategico = fkId;
+        metaEstrategicaActual.Descripcion = completa.Descripcion ?? "";
+
+        existeObjetivo = true;
+        textoBotonGuardar = "Actualizar";
+        mensaje = $"Objetivo Estrategico #{completa.Id} cargado.";
+        claseAviso = "alert alert-success";
+
+        // notifica al EditContext / Blazor que hubo cambios
+        editContext?.NotifyFieldChanged(new FieldIdentifier(metaEstrategicaActual, nameof(metaEstrategicaActual.Id)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(metaEstrategicaActual, nameof(metaEstrategicaActual.Titulo)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(metaEstrategicaActual, nameof(metaEstrategicaActual.FkIdObjetivoEstrategico)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(metaEstrategicaActual, nameof(metaEstrategicaActual.Descripcion)));
+
+        StateHasChanged();
+    }
+}

@@ -36,7 +36,7 @@
                 onmouseup="this.style.transform='scale(1)';">
                 <div class="rounded-1 px-3 py-2">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="fw-semibold">Mostrar Todos</span>
+                        <span class="fw-semibold">Probar Conexión</span>
                     </div>
                 </div>
             </button>
@@ -76,7 +76,7 @@
                 onmouseup="this.style.transform='scale(1)';">
                 <div class="rounded-1 px-3 py-2">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="fw-semibold">Mostrar Todos</span>
+                        <span class="fw-semibold">Limpiar</span>
                     </div>
                 </div>
             </button>
@@ -111,16 +111,16 @@
     @* Grid responsivo de Bootstrap para organizar los campos *@
     <div class="row g-3">
         <div class="col-md-4">
-            <label class="form-label">Codigo</label>
+            <label class="form-label">Id</label>
             @* 
                 InputText: Componente de Blazor para campos de texto
                 @bind-Value: Vinculación bidireccional (two-way binding)
-                - Cuando el usuario escribe, actualiza productoActual.Codigo
+                - Cuando el usuario escribe, actualiza productoActual.Id
                 - Cuando el código cambia por programa, actualiza el campo visual
             *@
-            <InputText
+            <InputNumber
                 class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info"
-                @bind-Value="usuarioActual.Codigo" />
+                @bind-Value="usuarioActual.Id" />
         </div>
 
         <div class="col-md-5">
@@ -220,7 +220,7 @@ else
             {
                 <tr>
                     @* @ permite usar variables C# dentro de HTML *@
-                    <td>@u.Codigo</td>
+                    <td>@u.Id</td>
                     <td>@u.Email</td>
                     <td>@u.Contrasena</td>
                     <td>@u.RutaAvatar</td>
@@ -340,7 +340,7 @@ else
         LimpiarMensajes();
 
         // Validación de entrada
-        if (string.IsNullOrWhiteSpace(usuarioActual.Codigo))
+        if (usuarioActual.Id<= 0)
         {
             mensaje = "Debe indicar el código para buscar.";
             claseAviso = "alert alert-warning";
@@ -352,7 +352,7 @@ else
             var cliente = fabricaHttp.CreateClient("ApiUsuarios");
 
             // Construcción dinámica de la URL con el código
-            var ruta = $"{urlBaseApi}/codigo/{usuarioActual.Codigo}";
+            var ruta = $"{urlBaseApi}/codigo/{usuarioActual.Id}";
             var respuesta = await cliente.GetFromJsonAsync<RespuestaApi<List<Usuario>>>(ruta);
 
             // FirstOrDefault: Toma el primer elemento o null si no hay elementos
@@ -363,7 +363,7 @@ else
                 // ENCONTRADO: Carga los datos en el formulario
                 usuarioActual = new Usuario
                 {
-                    Codigo = encontrado.Codigo,
+                    Id = encontrado.Id,
                     Email = encontrado.Email,
                     Contrasena = encontrado.Contrasena,
                     RutaAvatar = encontrado.RutaAvatar,
@@ -457,7 +457,7 @@ else
     {
         LimpiarMensajes();
 
-        if (string.IsNullOrWhiteSpace(usuarioActual.Codigo))
+        if (usuarioActual.Id<= 0)
         {
             mensaje = "Debe indicar el código para actualizar.";
             claseAviso = "alert alert-warning";
@@ -469,7 +469,7 @@ else
             var cliente = fabricaHttp.CreateClient("ApiUsuarios");
 
             // PUT requiere el código en la URL y el objeto completo en el body
-            var ruta = $"{urlBaseApi}/codigo/{usuarioActual.Codigo}";
+            var ruta = $"{urlBaseApi}/codigo/{usuarioActual.Id}";
             var respuesta = await cliente.PutAsJsonAsync(ruta, usuarioActual);
 
             if (respuesta.IsSuccessStatusCode)
@@ -506,7 +506,7 @@ else
     {
         LimpiarMensajes();
 
-        if (string.IsNullOrWhiteSpace(usuarioActual.Codigo))
+        if (usuarioActual.Id<= 0)
         {
             mensaje = "Debe indicar el código para eliminar.";
             claseAviso = "alert alert-warning";
@@ -518,7 +518,7 @@ else
             var cliente = fabricaHttp.CreateClient("ApiUsuarios");
 
             // DELETE solo necesita el código en la URL
-            var ruta = $"{urlBaseApi}/codigo/{usuarioActual.Codigo}";
+            var ruta = $"{urlBaseApi}/codigo/{usuarioActual.Id}";
             var respuesta = await cliente.DeleteAsync(ruta);
 
             if (respuesta.IsSuccessStatusCode)
@@ -595,7 +595,7 @@ else
         // en el formulario modificaría también el objeto en la lista
         usuarioActual = new Usuario
         {
-            Codigo = u.Codigo,
+            Id = u.Id,
             Email = u.Email,
             Contrasena = u.Contrasena,
             RutaAvatar = u.RutaAvatar,

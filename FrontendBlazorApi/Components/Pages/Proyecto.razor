@@ -1,0 +1,1213 @@
+@page "/proyecto"
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Linq
+@using System.ComponentModel.DataAnnotations
+@inject IHttpClientFactory fabricaHttp
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Proyectos</PageTitle>
+
+<div class="container-fluid py-3">
+    <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-receipt fs-2 text-primary me-3"></i>
+        <h3 class="mb-0">Gestión de Proyectos</h3>
+    </div>
+
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                        background: linear-gradient(to bottom, #414448, #646c7d);
+                        border: 1px solid #6a6a6c;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="ProbarConexion" title="Probar conexión con la API" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Probar Conexión</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                        background: linear-gradient(to bottom, #357de9, #8ea6e0);
+                        border: 1px solid #8ea6e0;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="CargarProyectos" title="Mostrar todos los responsables" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Mostrar Todos</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-black fw-semibold" style="
+                        background: linear-gradient(to bottom, #ffffff, #c3cde7);
+                        border: 1px solid #dde5f8;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="LimpiarFormulario" title="Limpiar formulario" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Limpiar</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="@claseAviso shadow-sm" role="alert">
+            <i class="bi bi-info-circle me-2"></i>@mensaje
+        </div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-clipboard-plus me-2"></i>Formulario de Proyectos</h4>
+        </div>
+        <div class="card-body">
+            <EditForm EditContext="editContext" OnValidSubmit="GuardarSegunEstado">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Id
+                        </label>
+                        <InputNumber class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.Id" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person text-primary"></i> Proyecto Padre
+                        </label>
+                        <InputSelect class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.FkIdProyectoPadre">
+                            <option value="0">-- Seleccione --</option>
+                            @foreach (var c in listaProyectosPadres)
+                            {
+                                <option value="@c.Id">@c.Titulo (ID: @c.Id)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person text-primary"></i> Responsable
+                        </label>
+                        <InputSelect class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.FkIdResponsable">
+                            <option value="0">-- Seleccione --</option>
+                            @foreach (var c in listaResponsables)
+                            {
+                                <option value="@c.Id">@c.Nombre (ID: @c.Id)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person text-primary"></i> Tipo Proyecto
+                        </label>
+                        <InputSelect class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.FkIdTipoProyecto">
+                            <option value="0">-- Seleccione --</option>
+                            @foreach (var c in listaTipoProyectos)
+                            {
+                                <option value="@c.Id">@c.Nombre (ID: @c.Id)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Codigo
+                        </label>
+                        <InputText class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.Codigo" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Titulo
+                        </label>
+                        <InputText class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.Titulo" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Descripción
+                        </label>
+                        <InputText class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.Descripcion" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Fecha de Inicio
+                        </label>
+                        <InputDate class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.FechaInicio" />
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Fecha Fin Prevista
+                        </label>
+                        <InputDate class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.FechaFinPrevista" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Fecha de Modificacion
+                        </label>
+                        <InputDate class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.FechaModificacion" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Fecha de Finalizacion
+                        </label>
+                        <InputDate class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.FechaFinalizacion" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Ruta del Logo
+                        </label>
+                        <InputText class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="proyectoActual.RutaLogo" />
+                    </div>
+                </div>
+
+
+                <hr class="my-4" />
+
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                    <button type="submit"
+                        class="btn-create d-flex align-items-center gap-1 text-white font-weight-bold border border-success rounded-pill px-4 py-2">
+                        <img src="icons/paper-plane-solid.svg" alt="Guardar" width="24" height="24" class="me-1" />
+                        @textoBotonGuardar
+                    </button>
+                    <button type="button"
+                        class="btn-buscar d-flex align-items-center gap-1 text-white font-weight-bold border border-secondary rounded-pill px-4 py-2"
+                        @onclick="BuscarPorNumero" title="Buscar responsable por número">
+                        <img src="icons/magnifying-glass-solid.svg" alt="Buscar" width="24" height="24" class="me-1" />
+                        Buscar
+                    </button>
+
+                    <button type="button"
+                        class="btn-eliminar d-flex align-items-center gap-1 text-white font-weight-bold border border-danger rounded-pill px-4 py-2"
+                        @onclick="EliminaProyecto" disabled="@(!existeObjetivo)" title="Eliminar responsable">
+                        <img src="icons/trash-can-solid.svg" alt="Eliminar" width="24" height="24" class="me-1" />
+                        Eliminar
+                    </button>
+
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-table me-2"></i>Lista de Proyectos</h4>
+        </div>
+        <div class="card-body">
+            @if (cargando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-3"><em>Cargando Proyectoss...</em></p>
+                </div>
+            }
+            else if (listaProyectos.Count == 0)
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>No hay Proyectos disponibles.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-primary">
+                            <tr>
+                                <th><i class="bi bi-person me-1"></i>Id</th>
+                                <th><i class="bi bi-person-badge me-1"></i>Tipo Proyecto</th>
+                                <th><i class="bi bi-calendar me-1"></i>Titulo</th>
+                                <th><i class="bi bi-calendar me-1"></i>Descripción</th>
+                                <th><i class="bi bi-calendar me-1"></i>Fecha de Inicio</th>
+                                <th><i class="bi bi-gear me-1"></i>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in listaProyectos)
+                            {
+                                <tr>
+                                    <td>@f.Id</td>
+                                    <td>@f.TipoProyecto</td>
+                                    @*<td>@(string.IsNullOrWhiteSpace(f.TipoProyecto) ? f.IdTipoProyecto?.ToString() : f.TipoProyecto)</td>*@
+                                    <td>@f.Titulo</td>
+                                    <td>@f.Descripcion</td>
+                                    <td>@f.FechaInicio.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <button class="btn-cargar d-flex align-items-center gap-1 text-white font-weight-bold border border-primary rounded-pill px-4 py-2"
+                                            @onclick="@(async () => await CargarProyectoCompleta(f.Id))"
+                                            title="Cargar Proyectos en formulario">
+                                            <img src="icons/spinner-solid.svg" alt="Cargar" width="24" height="24" class="me-1" />
+                                            Cargar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private EditContext? editContext;
+    private List<ProyectoCompleta> listaProyectos = new();
+    private List<ResponsableDto> listaResponsables = new();
+    private List<TipoProyectoDto> listaTipoProyectos = new();
+    private List<ProyectoPadreDto> listaProyectosPadres = new();
+
+    private ProyectoDto proyectoActual { get; set; } = new();
+
+    private bool existeObjetivo = false;
+    private string textoBotonGuardar = "Crear";
+    private string mensaje = "";
+    private string claseAviso = "alert alert-info";
+    private bool cargando = false;
+
+    private const string urlProcedimientos = "api/procedimientos/ejecutarsp";
+    private const string urlConsultas = "api/consultas/ejecutarconsultaparametrizada";
+    private const string urlProyectos = "api/Proyecto";
+    private const string urlResponsables = "api/Responsable";
+    private const string urlTipoProyectos = "api/TipoProyecto";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // inicializa EditContext para que el EditForm lo use
+        editContext = new EditContext(proyectoActual);
+
+        // Cargar variables primero para evitar race conditions al mapear nombres.
+        await CargarResponsables();
+        await CargarTipoProyectos();
+        await CargarProyectoPadres();
+        await CargarProyectos();
+    }
+
+    private async Task CargarTipoProyectos()
+    {
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+            var respuesta = await client.GetFromJsonAsync<RespuestaApi<List<Dictionary<string, object>>>>(urlTipoProyectos);
+
+            listaTipoProyectos = respuesta?.Datos?.Select(d =>
+            {
+                var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+                return new TipoProyectoDto
+                {
+                    Id = ObtenerInt(normal, "id"),
+                    Nombre = ObtenerString(normal, "nombre")
+                };
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error cargando Entregables: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Error CargarTipoProyectos: {ex}");
+        }
+    }
+
+    private async Task CargarResponsables()
+    {
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+            var respuesta = await client.GetFromJsonAsync<RespuestaApi<List<Dictionary<string, object>>>>(urlResponsables);
+
+            listaResponsables = respuesta?.Datos?.Select(d =>
+            {
+                var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+                return new ResponsableDto
+                {
+                    Id = ObtenerInt(normal, "id"),
+                    Nombre = ObtenerString(normal, "nombre") // si existe
+                };
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error cargando Products: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Error CargarProyectoss: {ex}");
+        }
+    }
+
+    private async Task CargarProyectoPadres()
+    {
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var respuesta = await client.GetFromJsonAsync<RespuestaApi<List<Dictionary<string, object>>>>(urlProyectos);
+
+            listaProyectosPadres = respuesta?.Datos?.Select(d =>
+            {
+                var normal = d.ToDictionary(
+                    k => (k.Key ?? "").ToLowerInvariant(),
+                    v => v.Value
+                );
+
+                return new ProyectoPadreDto
+                {
+                    Id = ObtenerInt(normal, "id"),
+                    Titulo = ObtenerString(normal, "titulo")
+                };
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error cargando proyectos padres: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Error CargarProyectoPadres: {ex}");
+        }
+    }
+
+
+    private async Task CargarProyectos()
+    {
+        try
+        {
+            cargando = true;
+            StateHasChanged();
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametrosConsulta = new Dictionary<string, object?>
+            {
+                ["consulta"] = @"
+                    SELECT 
+                        f.id,
+                        f.idproyectopadre,
+                        f.idresponsable,
+                        f.idtipoProyecto,
+                        f.codigo,
+                        f.titulo,
+                        f.descripcion,
+                        f.fechainicio,
+                        f.fechafinPrevista,
+                        f.fechamodificacion,
+                        f.fechafinalizacion,
+                        f.rutalogo
+                    FROM Proyecto f 
+                    ORDER BY f.id DESC",
+                ["parametros"] = new Dictionary<string, object?>()
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlConsultas, parametrosConsulta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaConsulta>();
+
+                listaProyectos = resultado?.Resultados?.Select(d =>
+                {
+                    var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+
+                    var id = ObtenerInt(normal, "id");
+                    var fkTipo = ObtenerInt(normal, "idtipoproyecto");
+                    var fkResponsable = ObtenerInt(normal, "idresponsable");
+                    var fkProyectoPadre = ObtenerInt(normal, "idproyectopadre");
+                    var codigo = ObtenerString(normal, "codigo");
+                    var titulo = ObtenerString(normal, "titulo");
+                    var descripcion = ObtenerString(normal, "descripcion");
+                    var fechaInicio = ObtenerDateTime(normal, "fechainicio");
+                    var fechaFinPrevista = ObtenerDateTime(normal, "fechafinprevista");
+                    var fechaModificacion = ObtenerDateTime(normal, "fechamodificacion");
+                    var fechaFinalizacion = ObtenerDateTime(normal, "fechafinalizacion");
+                    var rutaLogo = ObtenerString(normal, "rutalogo");
+
+                    var tipoTitulo = listaTipoProyectos.FirstOrDefault(x => x.Id == fkTipo)?.Nombre ?? "";
+                    var responsableDisplay = listaResponsables.FirstOrDefault(x => x.Id == fkResponsable)?.Nombre ?? fkResponsable.ToString();
+                    var proyectopadreDisplay = listaProyectos.FirstOrDefault(x => x.Id == fkProyectoPadre)?.Titulo ?? fkProyectoPadre.ToString();
+
+                    return new ProyectoCompleta
+                    {
+                        Id = id,
+                        IdTipoProyecto = fkTipo,
+                        IdProyectoPadre = fkProyectoPadre,
+                        IdResponsable = fkResponsable,
+                        Codigo = codigo,
+                        Titulo = titulo,
+                        Descripcion = descripcion,
+                        FechaInicio = fechaInicio,
+                        FechaFinPrevista = fechaFinPrevista,
+                        FechaModificacion = fechaModificacion,
+                        FechaFinalizacion = fechaFinalizacion,
+                        RutaLogo = rutaLogo,
+                        TipoProyecto = tipoTitulo,
+                        Responsable = responsableDisplay,
+                        ProyectoPadre = proyectopadreDisplay
+                    };
+
+                }).ToList() ?? new();
+
+                mensaje = $"Se cargaron {listaProyectos.Count} asociaciones Proyectos.";
+                claseAviso = "alert alert-success";
+                StateHasChanged();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"❌ Error al cargar Proyectos: {detalle}";
+                claseAviso = "alert alert-danger";
+                Console.WriteLine($"Detalle CargarProyectos: {detalle}");
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al listar Responsable_Entregable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CargarProyectos: {ex}");
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task BuscarPorNumero()
+    {
+        LimpiarMensajes();
+
+        if (proyectoActual.Id <= 0)
+        {
+            mensaje = "Debe indicar el número de Proyectos.";
+            claseAviso = "alert alert-warning";
+            return;
+        }
+
+        await CargarProyectoCompleta(proyectoActual.Id);
+    }
+
+    private async Task CargarProyectoCompleta(int numeroProyecto)
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "consultar_proyecto",
+                ["p_Id"] = numeroProyecto
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"❌ Error al cargar responsable: {detalle}";
+                claseAviso = "alert alert-danger";
+                return;
+            }
+
+            var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaSP>();
+
+            if (resultado?.Resultados == null || resultado.Resultados.Count == 0)
+            {
+                mensaje = "Proyectos no encontrado.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var primeraFila = resultado.Resultados[0];
+
+            // 1) Si la fila contiene una clave "Resultado" con JSON -> deserializar
+            if (primeraFila.TryGetValue("Resultados", out var val) && val != null)
+            {
+                var json = val.ToString();
+                if (!string.IsNullOrWhiteSpace(json))
+                {
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var objetivoDesdeJson = JsonSerializer.Deserialize<ProyectoCompleta>(json, options);
+                    if (objetivoDesdeJson != null)
+                    {
+                        await PoblarDtoDesdeCompleta(objetivoDesdeJson);
+                        return;
+                    }
+                }
+            }
+
+            // 2) Si la fila ya viene con columnas (id, nombre, fkidresponsable, fkidentregable) -> mapear directamente
+            var normal = primeraFila.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+            if (normal.Count > 0)
+            {
+                var id = ObtenerInt(normal, "id");
+                var fkTipo = ObtenerInt(normal, "idtipoproyecto");
+                var fkResponsable = ObtenerInt(normal, "idresponsable");
+                var fkProyectoPadre = ObtenerInt(normal, "idproyectopadre");
+                var codigo = ObtenerString(normal, "codigo");
+                var titulo = ObtenerString(normal, "titulo");
+                var descripcion = ObtenerString(normal, "descripcion");
+                var fechaInicio = ObtenerDateTime(normal, "fechainicio");
+                var fechaFinPrevista = ObtenerDateTime(normal, "fechafinprevista");
+                var fechaModificacion = ObtenerDateTime(normal, "fechamodificacion");
+                var fechaFinalizacion = ObtenerDateTime(normal, "fechafinalizacion");
+                var rutaLogo = ObtenerString(normal, "rutalogo");
+
+                proyectoActual = new ProyectoDto
+                {
+                    Id = id,
+                    FkIdTipoProyecto = fkTipo,
+                    FkIdProyectoPadre = fkProyectoPadre,
+                    FkIdResponsable = fkResponsable,
+                    Codigo = codigo,
+                    Titulo = titulo,
+                    Descripcion = descripcion,
+                    FechaInicio = fechaInicio,
+                    FechaFinPrevista = fechaFinPrevista,
+                    FechaModificacion = fechaModificacion,
+                    FechaFinalizacion = fechaFinalizacion,
+                    RutaLogo = rutaLogo
+                };
+
+                existeObjetivo = true;
+                textoBotonGuardar = "Actualizar";
+                mensaje = $"Responsable #{numeroProyecto} cargado.";
+                claseAviso = "alert alert-success";
+                StateHasChanged();
+                return;
+            }
+
+            mensaje = "No se pudo interpretar el resultado del procedimiento.";
+            claseAviso = "alert alert-warning";
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar Responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CargarProyectoCompleta: {ex}");
+        }
+    }
+
+    private async Task GuardarSegunEstado()
+    {
+        if (existeObjetivo)
+            await ActualizarProyecto();
+        else
+            await CrearProyecto();
+    }
+
+    private async Task CrearProyecto()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            // validaciones básicas
+            proyectoActual.Codigo = proyectoActual.Codigo?.Trim() ?? "";
+            proyectoActual.Titulo = proyectoActual.Titulo?.Trim() ?? "";
+            proyectoActual.Descripcion = proyectoActual.Descripcion?.Trim() ?? "";
+            proyectoActual.RutaLogo = proyectoActual.RutaLogo?.Trim() ?? "";
+
+            // Validar que el responsable exista
+            if (proyectoActual.FkIdResponsable <= 0 || !listaResponsables.Any(r => r.Id == proyectoActual.FkIdResponsable))
+            {
+                mensaje = "⚠️ Seleccione un Responsable válido.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            // Validar que el tipo de proyecto exista
+            if (proyectoActual.FkIdTipoProyecto <= 0 || !listaTipoProyectos.Any(t => t.Id == proyectoActual.FkIdTipoProyecto))
+            {
+                mensaje = "⚠️ Seleccione un Tipo de Proyecto válido.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            /*if (proyectoActual.Id <= 0)
+            {
+                mensaje = "⚠️ Debe seleccionar Tipo De Responsable.";
+                claseAviso = "alert alert-warning";
+                return;
+            }*/
+
+            if (string.IsNullOrEmpty(proyectoActual.Codigo))
+            {
+                mensaje = "⚠️ El Codigo es obligatorio.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+            if (string.IsNullOrEmpty(proyectoActual.Titulo))
+            {
+                mensaje = "⚠️ El Titulo es obligatorio.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+            if (string.IsNullOrEmpty(proyectoActual.Descripcion))
+            {
+                mensaje = "⚠️ El Descripcion es obligatorio.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+            if (string.IsNullOrEmpty(proyectoActual.RutaLogo))
+            {
+                mensaje = "⚠️ El RutaLogo es obligatorio.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            // envio parámetros correctos (antes estaban invertidos)
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "insertar_proyecto",
+                ["p_IdProyectoPadre"] = proyectoActual.FkIdProyectoPadre == 0
+                    ? null
+                    : proyectoActual.FkIdProyectoPadre,
+
+                ["p_IdResponsable"] = proyectoActual.FkIdResponsable,
+                ["p_IdTipoProyecto"] = proyectoActual.FkIdTipoProyecto,
+                ["p_Codigo"] = proyectoActual.Codigo,
+                ["p_Titulo"] = proyectoActual.Titulo,
+                ["p_Descripcion"] = proyectoActual.Descripcion,
+                ["p_FechaInicio"] = proyectoActual.FechaInicio,
+                ["p_FechaFinPrevista"] = proyectoActual.FechaFinPrevista,
+                ["p_FechaModificacion"] = proyectoActual.FechaModificacion,
+                ["p_FechaFinalizacion"] = proyectoActual.FechaFinalizacion,
+                ["p_RutaLogo"] = proyectoActual.RutaLogo
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable creado exitosamente.";
+                claseAviso = "alert alert-success";
+                await CargarProyectos();
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al crear responsable: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al crear Responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CrearProyecto: {ex}");
+        }
+    }
+
+    private async Task ActualizarProyecto()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+
+            // Validar que el responsable exista
+        if (proyectoActual.FkIdResponsable <= 0 || !listaResponsables.Any(r => r.Id == proyectoActual.FkIdResponsable))
+        {
+            mensaje = "⚠️ Seleccione un Responsable válido.";
+            claseAviso = "alert alert-warning";
+            return;
+        }
+
+        // Validar que el tipo de proyecto exista
+        if (proyectoActual.FkIdTipoProyecto <= 0 || !listaTipoProyectos.Any(t => t.Id == proyectoActual.FkIdTipoProyecto))
+        {
+            mensaje = "⚠️ Seleccione un Tipo de Proyecto válido.";
+            claseAviso = "alert alert-warning";
+            return;
+        }
+
+            if (proyectoActual.Id <= 0)
+            {
+                mensaje = "⚠️ Debe indicar el número de Responsable.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var confirmar = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está seguro de actualizar el responsable #{proyectoActual.Id}?");
+            if (!confirmar)
+            {
+                mensaje = "ℹ️ Actualización cancelada.";
+                claseAviso = "alert alert-info";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+           var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "actualizar_proyecto",
+                ["p_Id"] = proyectoActual.Id,
+                ["p_IdProyectoPadre"] = proyectoActual.FkIdProyectoPadre,
+                ["p_IdResponsable"] = proyectoActual.FkIdResponsable,
+                ["p_IdTipoProyecto"] = proyectoActual.FkIdTipoProyecto,
+                ["p_Codigo"] = proyectoActual.Codigo,
+                ["p_Titulo"] = proyectoActual.Titulo,
+                ["p_Descripcion"] = proyectoActual.Descripcion,
+                ["p_FechaInicio"] = proyectoActual.FechaInicio,
+                ["p_FechaFinPrevista"] = proyectoActual.FechaFinPrevista,
+                ["p_FechaModificacion"] = proyectoActual.FechaModificacion,
+                ["p_FechaFinalizacion"] = proyectoActual.FechaFinalizacion,
+                ["p_RutaLogo"] = proyectoActual.RutaLogo
+            };
+
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable actualizado exitosamente.";
+                claseAviso = "alert alert-success";
+
+                // Actualiza la lista local si existe el elemento
+                var item = listaProyectos.FirstOrDefault(x => x.Id == proyectoActual.Id);
+                if (item != null)
+                {
+                    item.Codigo = proyectoActual.Codigo;
+                    item.Titulo = proyectoActual.Titulo;
+                    item.Descripcion = proyectoActual.Descripcion;
+                    item.FechaInicio = proyectoActual.FechaInicio;
+                    item.FechaFinPrevista = proyectoActual.FechaFinPrevista;
+                    item.FechaModificacion = proyectoActual.FechaModificacion;
+                    item.FechaFinalizacion = proyectoActual.FechaFinalizacion;
+                    item.RutaLogo = proyectoActual.RutaLogo;
+                    
+                    item.Responsable= listaResponsables.FirstOrDefault(v => v.Id == proyectoActual.FkIdResponsable)?.Nombre
+                                   ?? proyectoActual.FkIdResponsable.ToString();
+                    item.IdResponsable= proyectoActual.FkIdResponsable;
+
+                    item.IdTipoProyecto = proyectoActual.FkIdTipoProyecto;
+                    item.TipoProyecto = listaTipoProyectos.FirstOrDefault(v => v.Id == proyectoActual.FkIdTipoProyecto)?.Nombre
+                                        ?? proyectoActual.FkIdTipoProyecto.ToString();
+
+                    item.IdProyectoPadre = proyectoActual.FkIdProyectoPadre;
+                    item.ProyectoPadre = listaProyectosPadres.FirstOrDefault(v => v.Id == proyectoActual.FkIdProyectoPadre)?.Titulo
+                                        ?? proyectoActual.FkIdProyectoPadre.ToString();
+
+
+                    StateHasChanged();
+                }
+
+                // refrescar para mantener consistencia con BD
+                await CargarProyectos();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al actualizar: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al actualizar Responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception ActualizarProyecto: {ex}");
+        }
+    }
+
+    private async Task EliminaProyecto()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            if (proyectoActual.Id <= 0)
+            {
+                mensaje = "Debe indicar el número de Responsable.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var confirmar = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está seguro de eliminar el responsable #{proyectoActual.Id}?");
+            if (!confirmar)
+            {
+                mensaje = "Eliminación cancelada.";
+                claseAviso = "alert alert-info";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "eliminar_proyecto",
+                ["p_Id"] = proyectoActual.Id
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable eliminado correctamente.";
+                claseAviso = "alert alert-success";
+                await CargarProyectos();
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al eliminar: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al eliminar responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception EliminaProyecto: {ex}");
+        }
+    }
+
+    private async Task ProbarConexion()
+    {
+        LimpiarMensajes();
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametrosConsulta = new Dictionary<string, object?>
+            {
+                ["consulta"] = "SELECT COUNT(*) AS total FROM Proyecto",
+                ["parametros"] = new Dictionary<string, object?>()
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlConsultas, parametrosConsulta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "Conexión con la API y base de datos verificada correctamente.";
+                claseAviso = "alert alert-success";
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"La API respondió pero con error: {detalle}";
+                claseAviso = "alert alert-warning";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error de conexión: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception ProbarConexion: {ex}");
+        }
+    }
+
+    private void LimpiarFormulario()
+    {
+        proyectoActual.Id = 0;
+        proyectoActual.FkIdProyectoPadre = 0;
+        proyectoActual.FkIdTipoProyecto = 0;
+        proyectoActual.FkIdResponsable = 0;
+        proyectoActual.Codigo = "";
+        proyectoActual.Titulo = "";
+        proyectoActual.Descripcion = "";
+        proyectoActual.FechaInicio = DateTime.Now;
+        proyectoActual.FechaFinPrevista = DateTime.Now;
+        proyectoActual.FechaModificacion = DateTime.Now;
+        proyectoActual.FechaFinalizacion = DateTime.Now;
+        proyectoActual.RutaLogo = "";
+
+        existeObjetivo = false;
+        textoBotonGuardar = "Crear";
+
+        editContext = new EditContext(proyectoActual);
+
+        LimpiarMensajes();
+        StateHasChanged();
+    }
+
+    private void LimpiarMensajes()
+    {
+        mensaje = "";
+        claseAviso = "alert alert-info";
+    }
+
+    // Helpers robustos para distintos tipos JSON/objetos
+    private int ObtenerInt(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return 0;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt32(out var i)) return i;
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt64(out var l)) return (int)l;
+            if (elem.ValueKind == JsonValueKind.String && int.TryParse(elem.GetString(), out var p)) return p;
+            return 0;
+        }
+
+        if (int.TryParse(valor.ToString(), out var res)) return res;
+        return 0;
+    }
+
+    private decimal ObtenerDecimal(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return 0m;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetDecimal(out var d)) return d;
+            if (elem.ValueKind == JsonValueKind.String && decimal.TryParse(elem.GetString(), out var p)) return p;
+            return 0m;
+        }
+
+        if (decimal.TryParse(valor.ToString(), out var res)) return res;
+        return 0m;
+    }
+
+    private DateTime ObtenerDateTime(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return DateTime.MinValue;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.String && DateTime.TryParse(elem.GetString(), out var d)) return d;
+            return DateTime.MinValue;
+        }
+
+        if (DateTime.TryParse(valor.ToString(), out var res)) return res;
+        return DateTime.MinValue;
+    }
+
+    private string ObtenerString(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return "";
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.String) return elem.GetString() ?? "";
+            return elem.ToString();
+        }
+
+        return valor?.ToString() ?? "";
+    }
+
+    // DTOs / modelos locales
+    private class ProyectoDto
+    {
+        public int Id { get; set; }
+        public int FkIdProyectoPadre { get; set; }
+        public int FkIdTipoProyecto { get; set; }
+        public int FkIdResponsable { get; set; }  // corresponde a IdResponsableen DB
+        public string Codigo { get; set; } = "";
+        public string Titulo { get; set; } = "";
+        public string Descripcion { get; set; } = "";
+        public DateTime FechaInicio { get; set; } = DateTime.Now;
+        public DateTime FechaFinPrevista { get; set; } = DateTime.Now;
+        public DateTime FechaModificacion { get; set; } = DateTime.Now;
+        public DateTime FechaFinalizacion { get; set; } = DateTime.Now;
+        public string RutaLogo { get; set; } = "";
+    }
+
+    private class ProyectoCompleta
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("codigo")]
+        public string Codigo { get; set; } = "";
+
+        [JsonPropertyName("titulo")]
+        public string Titulo { get; set; } = "";
+
+        [JsonPropertyName("descripcion")]
+        public string Descripcion { get; set; } = "";
+
+        [JsonPropertyName("fechainicio")]
+        public DateTime FechaInicio { get; set; } = DateTime.MinValue;
+
+        [JsonPropertyName("fechafinprevista")]
+        public DateTime FechaFinPrevista { get; set; } = DateTime.MinValue;
+
+        [JsonPropertyName("fechamodificacion")]
+        public DateTime FechaModificacion { get; set; } = DateTime.MinValue;
+
+        [JsonPropertyName("fechafinalizacion")]
+        public DateTime FechaFinalizacion { get; set; } = DateTime.MinValue;
+
+        [JsonPropertyName("rutalogo")]
+        public string RutaLogo { get; set; } = "";
+
+        // mantengo ambas formas: id y texto legible para flexibilidad
+        public int? IdResponsable { get; set; }
+        public string Responsable { get; set; } = "";
+
+        public int? IdTipoProyecto { get; set; }
+        public string TipoProyecto { get; set; } = "";
+
+        public int? IdProyectoPadre { get; set; }
+        public string ProyectoPadre { get; set; } = "";
+
+    }
+
+    private class RespuestaConsulta
+    {
+        [JsonPropertyName("Resultados")]
+        public List<Dictionary<string, object>>? Resultados { get; set; }
+
+        [JsonPropertyName("Advertencia")]
+        public string? Advertencia { get; set; }
+    }
+
+    private class RespuestaApi<T>
+    {
+        [JsonPropertyName("datos")]
+        public T? Datos { get; set; }
+    }
+
+    private class RespuestaSP
+    {
+        [JsonPropertyName("Procedimiento")]
+        public string? Procedimiento { get; set; }
+
+        [JsonPropertyName("Resultados")]
+        public List<Dictionary<string, object>>? Resultados { get; set; }
+
+        [JsonPropertyName("Total")]
+        public int Total { get; set; }
+
+        [JsonPropertyName("Mensaje")]
+        public string? Mensaje { get; set; }
+    }
+
+    private class ProyectoPadreDto
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = "";
+    }
+
+    private class ResponsableDto
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = "";
+    }
+
+    private class TipoProyectoDto
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = "";
+    }
+
+    private async Task PoblarDtoDesdeCompleta(ProyectoCompleta completa)
+    {
+        int fkId = 0;
+        int fkIdTR = 0;
+        int fkIdPP = 0;
+
+        // Entregable: si viene texto intenta match por título; si viene id intenta parsear
+        // Tipo de Proyecto: si viene texto intenta match por título; si viene id intenta parsear
+        if (!string.IsNullOrWhiteSpace(completa.TipoProyecto))
+        {
+            var encontradoPorTitulo = listaTipoProyectos.FirstOrDefault(
+                c => string.Equals(c.Nombre, completa.TipoProyecto, StringComparison.OrdinalIgnoreCase));
+
+            if (encontradoPorTitulo != null)
+                fkIdTR = encontradoPorTitulo.Id;
+            else if (int.TryParse(completa.TipoProyecto, out var parsedTR))
+                fkIdTR = parsedTR;
+        }
+        else if (completa.IdTipoProyecto.HasValue)
+        {
+            fkIdTR = completa.IdTipoProyecto.Value;
+        }
+
+
+        // Responsable: si viene id directo
+        if (completa.IdResponsable.HasValue)
+        {
+            fkId = completa.IdResponsable.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(completa.Responsable) && int.TryParse(completa.Responsable, out var parsedUsu))
+        {
+            fkId = parsedUsu;
+        }
+        else if (!string.IsNullOrWhiteSpace(completa.Responsable))
+        {
+            var encontradoPorCodigo = listaResponsables.FirstOrDefault(c => c.Id.ToString() == completa.Responsable);
+            if (encontradoPorCodigo != null) fkId = encontradoPorCodigo.Id;
+        }
+
+        // Proyecto Padre: si viene id directo
+        if (completa.IdProyectoPadre.HasValue)
+        {
+            fkIdPP = completa.IdProyectoPadre.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(completa.ProyectoPadre) && int.TryParse(completa.ProyectoPadre, out var parsedPP))
+        {
+            fkIdPP = parsedPP;
+        }
+        else if (!string.IsNullOrWhiteSpace(completa.ProyectoPadre))
+        {
+            var encontradoPorCodigo = listaProyectos.FirstOrDefault(c => c.Id.ToString() == completa.ProyectoPadre);
+            if (encontradoPorCodigo != null) fkIdPP = encontradoPorCodigo.Id;
+        }
+
+        proyectoActual.Id = completa.Id;
+        proyectoActual.Codigo = completa.Codigo;
+        proyectoActual.Titulo = completa.Titulo;
+        proyectoActual.Descripcion = completa.Descripcion;
+        proyectoActual.FechaInicio = completa.FechaInicio;
+        proyectoActual.FechaFinPrevista = completa.FechaFinPrevista;
+        proyectoActual.FechaModificacion = completa.FechaModificacion;
+        proyectoActual.FechaFinalizacion = completa.FechaFinalizacion;
+        proyectoActual.RutaLogo = completa.RutaLogo;
+        proyectoActual.FkIdProyectoPadre = fkIdPP;
+        proyectoActual.FkIdResponsable = fkId;
+        proyectoActual.FkIdTipoProyecto = fkIdTR;
+
+        existeObjetivo = true;
+        textoBotonGuardar = "Actualizar";
+        mensaje = $"Responsable #{completa.Id} cargado.";
+        claseAviso = "alert alert-success";
+
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.Id)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.Codigo)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.Titulo)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.Descripcion)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.FechaInicio)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.FechaFinPrevista)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.FechaModificacion)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.FechaFinalizacion)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.RutaLogo)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.FkIdProyectoPadre)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.FkIdResponsable)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(proyectoActual, nameof(proyectoActual.FkIdTipoProyecto)));
+
+        StateHasChanged();
+    }
+}

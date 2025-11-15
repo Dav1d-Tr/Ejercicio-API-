@@ -4,7 +4,7 @@ namespace FrontendBlazorApi.Models
 {
     public class Usuario
     {
-        public string Codigo { get; set; } = string.Empty;
+        public int Id { get; set; }
         public string Email { get; set; } = string.Empty;
         public string Contrasena { get; set; } = string.Empty;
         public string RutaAvatar { get; set; }

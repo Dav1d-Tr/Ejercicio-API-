@@ -1,20 +1,39 @@
+using System;
 using System.Text.Json.Serialization;
 
 namespace FrontendBlazorApi.Models
 {
     public class Producto
     {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("idTipoProducto")]
+        public int IdTipoProducto { get; set; }
+
+        [JsonPropertyName("codigo")]
         public string Codigo { get; set; } = string.Empty;
-        public string Nombre { get; set; } = string.Empty;
-        public int Stock { get; set; }
 
-        [JsonPropertyName("valorunitario")]   // Mapea con el JSON de la API
-        public double ValorUnitario { get; set; }
+        [JsonPropertyName("titulo")]
+        public string Titulo { get; set; } = string.Empty;
+
+        [JsonPropertyName("descripcion")]
+        public string Descripcion { get; set; } = string.Empty;
+
+        [JsonPropertyName("fechaInicio")]
+        public DateTime FechaInicio { get; set; } = DateTime.Now;
+
+        [JsonPropertyName("fechaFinPrevista")]
+        public DateTime FechaFinPrevista { get; set; }
+
+        [JsonPropertyName("fechaModificacion")]
+        public DateTime FechaModificacion { get; set; }
+
+        [JsonPropertyName("fechaFinalizacion")]        
+        public DateTime FechaFinalizacion { get; set; }
+
+        [JsonPropertyName("rutaLogo")]
+        public string RutaLogo { get; set; } = string.Empty;
+
     }
-
-    // Clase genérica para mapear la respuesta de la API
-    //public class RespuestaApi<T>
-    //{
-        //public T? Datos { get; set; }
-    //}
 }

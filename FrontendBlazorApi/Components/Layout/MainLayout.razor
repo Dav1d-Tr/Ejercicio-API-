@@ -1,9 +1,14 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavManager
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    @if (!NavManager.Uri.EndsWith("/"))
+    {
+        <!-- Si NO estás en la página de login -->
+        <div class="sidebar">
+            <NavMenu /> <!-- Muestra el menú solo cuando no estás en login -->
+        </div>
+    }
 
     <main>
         <div class="top-row px-4">

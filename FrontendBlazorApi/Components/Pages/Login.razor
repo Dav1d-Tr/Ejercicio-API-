@@ -1,0 +1,577 @@
+@*  
+- @page "/login"
+- Autor: Victor Oliveros
+- Fecha: 10/2025
+- Version: 1.0
+- Descripción: Página de login completa para autenticación de usuarios.
+- Notas: Sistema de autenticación funcional con validación y navegación
+
+Documentación: Página de autenticación completa que valida usuario y contraseña contra la API.
+*@
+
+@page "/"
+
+@using System.Net.Http.Json
+@using FrontendBlazorApi.Models
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Linq
+@using System.ComponentModel.DataAnnotations
+@using BCrypt.Net
+
+@inject NavigationManager NavManager
+
+@inject IHttpClientFactory fabricaHttp
+@inject NavigationManager navegacion
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Iniciar Sesión - Sistema de Proyectos</PageTitle>
+
+<style>
+    /* Botón Uiverse sobre Bootstrap */
+    .btn-uiverse {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+
+        font-family: inherit;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 17px;
+
+        padding: 0.8em 1.3em 0.8em 0.9em !important;
+        color: white !important;
+
+        background: linear-gradient(to right, #0f0c29, #302b63, #24243e) !important;
+
+        border: none !important;
+        border-radius: 16px !important;
+        letter-spacing: 0.05em;
+
+        transition: all 0.5s cubic-bezier(0.76, 0, 0.24, 1);
+    }
+
+    /* El SVG se comporta EXACTAMENTE como en Uiverse */
+    .btn-uiverse svg {
+        height: 22px;
+        width: 22px;
+        transform: rotate(30deg);
+        transition: transform 0.5s cubic-bezier(0.76, 0, 0.24, 1);
+    }
+
+    /* El texto también se desplaza */
+    .btn-uiverse span {
+        transition: transform 0.5s cubic-bezier(0.76, 0, 0.24, 1);
+    }
+
+    /* Animación hover */
+    .btn-uiverse:hover:not([disabled]) svg {
+        transform: translateX(5px) rotate(90deg);
+    }
+
+    .btn-uiverse:hover:not([disabled]) span {
+        transform: translateX(7px);
+    }
+
+    /* Estado disabled */
+    .btn-uiverse:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .uiverse-group {
+        position: relative;
+        width: 100%;
+    }
+
+    .uiverse-password-wrapper {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        position: relative;
+    }
+
+    .uiverse-input {
+        height: 50px;
+        flex: 1;
+        font-size: 1.1rem;
+        padding: 12px 14px;
+        border-radius: 8px;
+        background: transparent;
+        border: none;
+        color: #fff;
+        padding-right: 48px;
+        box-shadow:
+            3px 3px 10px rgba(0, 0, 0, 1),
+            -1px -1px 6px rgba(255, 255, 255, 0.4);
+    }
+
+    .toggle-password-btn {
+        background: transparent;
+        border: none;
+        padding: 0 12px;
+        color: #fff;
+    }
+
+    .uiverse-label {
+        position: absolute;
+        top: 16px;
+        left: 14px;
+        font-size: 1rem;
+        color: #fff;
+        pointer-events: none;
+        transition: 0.3s ease;
+    }
+
+    /* Regla que hace flotar el label */
+    .uiverse-group:focus-within .uiverse-label,
+    .uiverse-input:not(:placeholder-shown)~.uiverse-label {
+        transform: translateY(-43px);
+        font-size: 1.3rem;
+        padding-left: 2px;
+        font-family: Georgia, 'Times New Roman', Times, serif;
+    }
+
+    /* Wrapper que alinea input + botón del ojo */
+    .uiverse-password-wrapper {
+        position: relative;
+        width: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Botón del ojo, alineado a la derecha dentro del wrapper */
+    .uiverse-password-btn {
+        position: absolute;
+        right: 12px;
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 1.2rem;
+        cursor: pointer;
+    }
+
+    .uiverse-password-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .eye-blue {
+    color: #0d6efd; /* azul bootstrap */
+}
+
+</style>
+
+<div class="container-fluid vh-100 d-flex align-items-center justify-content-center"
+    style="background: linear-gradient(135deg, #0B122C 0%, #142353 100%);">>
+    <div class="row w-100">
+        <div class="col-md-6 col-lg-4 mx-auto">
+            <!-- Tarjeta principal de login -->
+            <div class="card shadow-lg border-0 rounded-4 p-5" style="background-color:#121212;">
+
+                <div class="card-body p-4">
+                    @if (!string.IsNullOrWhiteSpace(mensaje))
+                    {
+                        <div class="@claseAlerta alert-dismissible fade show" role="alert">
+                            <i class="bi @iconoAlerta me-2"></i>
+                            @mensaje
+                            <button type="button" class="btn-close" @onclick="LimpiarMensajes" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <EditForm Model="@modeloLogin" class="d-grid gap-3" OnValidSubmit="ProcesarLogin"
+                        FormName="LoginForm">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <div class="uiverse-group mb-4">
+                                <InputText class="form-control uiverse-input" @bind-Value="modeloLogin.Email" required
+                                    placeholder=" " disabled="@cargando" autocomplete="email" />
+
+                                <label class="uiverse-label">
+                                    <i class="bi bi-envelope me-2 text-primary"></i>
+                                    Email
+                                </label>
+                            </div>
+
+                            <ValidationMessage For="@(() => modeloLogin.Email)" class="text-danger small mt-1" />
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="uiverse-group mb-4">
+
+                                <div class="uiverse-password-wrapper">
+                                    <InputText type="@tipoPassword" class="form-control uiverse-input"
+                                        @bind-Value="modeloLogin.Contrasena" required placeholder=" "
+                                        disabled="@cargando" autocomplete="current-password" />
+
+                                    <button class="uiverse-password-btn" type="button"
+                                        @onclick="TogglePasswordVisibility" disabled="@cargando">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            fill="currentColor" class="bi bi-eye eye-blue" viewBox="0 0 16 16">
+                                            <path
+                                                d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                                            <path
+                                                d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+                                        </svg>
+                                    </button>
+
+
+                                    <label class="uiverse-label">
+                                        <i class="bi bi-lock me-2 text-primary"></i>
+                                        Contraseña
+                                    </label>
+                                </div>
+
+                            </div>
+
+                            <ValidationMessage For="@(() => modeloLogin.Contrasena)" class="text-danger small mt-1" />
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg shadow-sm fw-semibold btn-uiverse"
+                                disabled="@cargando">
+
+                                <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M0 0h24v24H0z" fill="none"></path>
+                                    <path
+                                        d="M5 13c0-5.088 2.903-9.436 7-11.182C16.097 3.564 19 7.912 19 13c0 .823-.076 1.626-.22 2.403l1.94 1.832a.5.5 0 0 1 .095.603l-2.495 4.575a.5.5 0 0 1-.793.114l-2.234-2.234a1 1 0 0 0-.707-.293H9.414a1 1 0 0 0-.707.293l-2.234 2.234a.5.5 0 0 1-.793-.114l-2.495-4.575a.5.5 0 0 1 .095-.603l1.94-1.832C5.077 14.626 5 13.823 5 13zm1.476 6.696l.817-.817A3 3 0 0 1 9.414 18h5.172a3 3 0 0 1 2.121.879l.817.817.982-1.8-1.1-1.04a2 2 0 0 1-.593-1.82c.124-.664.187-1.345.187-2.036 0-3.87-1.995-7.3-5-8.96C8.995 5.7 7 9.13 7 13c0 .691.063 1.372.187 2.037a2 2 0 0 1-.593 1.82l-1.1 1.039.982 1.8zM12 13a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"
+                                        fill="currentColor">
+                                    </path>
+                                </svg>
+
+                                <span>Iniciar Sesión</span>
+                            </button>
+                        </div>
+
+                        <ValidationSummary class="text-danger small" />
+                    </EditForm>
+
+
+                </div>
+
+            </div>
+
+            <!-- Panel de usuarios disponibles (solo si hay usuarios cargados) -->
+            @if (mostrarUsuarios && usuariosDisponibles.Any())
+            {
+                <div class="card mt-3 border-info shadow">
+                    <div class="card-header bg-info text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-people me-2"></i>
+                                Usuarios de Prueba (@usuariosDisponibles.Count disponibles)
+                            </span>
+                            <button class="btn btn-sm btn-outline-light" @onclick="() => mostrarUsuarios = false">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            @foreach (var usuario in usuariosDisponibles.Take(8))
+                            {
+                                <div class="col-md-6">
+                                    <button class="btn btn-outline-info btn-sm w-100 text-start"
+                                        @onclick="() => SeleccionarUsuario(usuario)" disabled="@cargando">
+                                        <i class="bi bi-person-circle me-1"></i>
+                                        <small>@usuario.Email</small>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-lightbulb"></i>
+                                Haga clic en cualquier email. Las contraseñas son las reales de cada usuario.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Ayuda flotante -->
+            @if (mostrarAyuda)
+            {
+                <div class="card mt-3 border-warning shadow">
+                    <div class="card-header bg-warning">
+                        <div class="d-flex justify-content-between align-items-center">
+
+                            <button class="btn btn-sm btn-outline-dark" @onclick="() => mostrarAyuda = false">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // ==========================================
+    // MODELO PARA EL FORMULARIO DE LOGIN
+    // ==========================================
+    public class ModeloLogin
+    {
+        [Required(ErrorMessage = "El email es requerido")]
+        [EmailAddress(ErrorMessage = "Formato de email inválido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es requerida")]
+        [MinLength(3, ErrorMessage = "La contraseña debe tener al menos 3 caracteres")]
+        public string Contrasena { get; set; } = string.Empty;
+    }
+
+    // ==========================================
+    // VARIABLES DE ESTADO
+    // ==========================================
+    [SupplyParameterFromForm]
+    private ModeloLogin modeloLogin { get; set; } = new();
+
+    private List<Usuario> usuariosDisponibles = new();
+    private bool cargando = false;
+    private bool mostrarUsuarios = false;
+    private bool mostrarAyuda = false;
+    private bool mostrarPassword = false;
+    private string mensaje = "";
+    private string claseAlerta = "";
+    private string iconoAlerta = "";
+
+    private const string urlBaseApiUsuarios = "api/usuario";
+
+    // Propiedades computadas para la UI
+    private string tipoPassword => mostrarPassword ? "text" : "password";
+    private string iconoPassword => mostrarPassword ? "bi-eye-slash" : "bi-eye";
+
+    // ==========================================
+    // CICLO DE VIDA DEL COMPONENTE
+    // ==========================================
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarUsuarios();
+        VerificarParametrosURL();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+// Enfocar el campo de email al cargar
+const emailInput = document.querySelector('input[type=""email""]');
+if (emailInput) emailInput.focus();
+
+// Manejar Enter en el formulario
+document.addEventListener('keypress', function(e) {
+if (e.key === 'Enter' && !e.target.closest('.btn')) {
+const submitBtn = document.querySelector('button[type=""submit""]');
+if (submitBtn && !submitBtn.disabled) submitBtn.click();
+}
+});
+");
+        }
+    }
+
+    private async Task ProcesarLogin()
+    {
+        LimpiarMensajes();
+        cargando = true;
+
+        try
+        {
+            using var http = fabricaHttp.CreateClient("ApiProyecto");
+
+            // Credenciales que espera tu endpoint /api/Autenticacion/token
+            var credenciales = new
+            {
+                tabla = "usuario",
+                campoUsuario = "Email",
+                campoContrasena = "Contrasena",
+                usuario = modeloLogin.Email,
+                contrasena = modeloLogin.Contrasena
+            };
+
+            // 🔗 Endpoint correcto
+            var respuesta = await http.PostAsJsonAsync("api/Autenticacion/token", credenciales);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var json = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine("Respuesta del servidor: " + json);
+
+                var contenido = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+
+                // ✅ Usa la clave en minúscula, según el JSON real
+                var token = contenido?["token"]?.ToString();
+
+                if (!string.IsNullOrEmpty(token))
+                {
+                    await JSRuntime.InvokeVoidAsync("localStorage.setItem", "auth_token", token);
+                    await JSRuntime.InvokeVoidAsync("localStorage.setItem", "usuario_email", modeloLogin.Email);
+
+                    MostrarMensaje("✅ Inicio de sesión exitoso. Redirigiendo...", "success", "bi-check-circle");
+                    await Task.Delay(1500);
+                    navegacion.NavigateTo("/home", true);
+                }
+                else
+                {
+                    MostrarMensaje("No se recibió el token del servidor.", "danger", "bi-bug");
+                }
+            }
+            else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                MostrarMensaje("Credenciales incorrectas. Verifique su email o contraseña.", "warning", "bi-key");
+            }
+            else
+            {
+                MostrarMensaje($"Error del servidor ({(int)respuesta.StatusCode}): {respuesta.ReasonPhrase}", "danger", "bi-server");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error al conectar con la API: {ex.Message}", "danger", "bi-wifi-off");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task<Usuario?> BuscarUsuarioPorEmail(string email)
+    {
+        try
+        {
+            using var httpClient = fabricaHttp.CreateClient("ApiProyecto");
+            var respuesta = await httpClient.GetFromJsonAsync<RespuestaApi<List<Usuario>>>(urlBaseApiUsuarios);
+            var usuarios = respuesta?.Datos ?? new List<Usuario>();
+
+            return usuarios.FirstOrDefault(u =>
+            u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+
+    private bool ValidarContrasenaReal(string contrasenaIngresada, string hashGuardado)
+    {
+        return BCrypt.Verify(contrasenaIngresada, hashGuardado);
+    }
+
+
+    private async Task IniciarSesionExitosa(string nombreUsuario, int usuarioId)
+    {
+        // Guardar información de sesión (simplificado)
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "usuario_logueado", nombreUsuario);
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "usuario_id", usuarioId.ToString());
+
+        MostrarMensaje($"¡Bienvenido {nombreUsuario}! Redirigiendo al sistema...", "success", "bi-check-circle");
+
+        // Simular delay de redirección
+        await Task.Delay(2000);
+
+        // Navegar al dashboard principal
+        navegacion.NavigateTo("/home", true);
+    }
+
+    // ==========================================
+    // MÉTODOS AUXILIARES Y UI
+    // ==========================================
+    private async Task CargarUsuarios()
+    {
+        try
+        {
+            using var httpClient = fabricaHttp.CreateClient("ApiProyecto");
+            var respuesta = await httpClient.GetFromJsonAsync<RespuestaApi<List<Usuario>>>(urlBaseApiUsuarios);
+            usuariosDisponibles = (respuesta?.Datos ?? new List<Usuario>())
+            .Where(u => u.Activo)
+            .OrderBy(u => u.Email)
+            .Take(20)
+            .ToList();
+        }
+        catch (Exception)
+        {
+            usuariosDisponibles = new List<Usuario>();
+        }
+    }
+
+    private async Task CargarUsuarioDemo()
+    {
+        if (usuariosDisponibles.Any())
+        {
+            var usuarioDemo = usuariosDisponibles.First();
+            SeleccionarCredenciales(usuarioDemo.Email, usuarioDemo.Contrasena);
+        }
+        else
+        {
+            await CargarUsuarios();
+            if (usuariosDisponibles.Any())
+            {
+                var usuarioDemo = usuariosDisponibles.First();
+                SeleccionarCredenciales(usuarioDemo.Email, usuarioDemo.Contrasena);
+            }
+            else
+            {
+                MostrarMensaje("No se pudieron cargar usuarios de demo.", "info", "bi-info-circle");
+            }
+        }
+    }
+
+    private void SeleccionarCredenciales(string email, string contrasena)
+    {
+        modeloLogin.Email = email;
+        modeloLogin.Contrasena = contrasena;
+        mostrarUsuarios = false;
+        mostrarAyuda = false;
+        MostrarMensaje($"Credenciales seleccionadas: {email}", "info", "bi-check");
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        mostrarPassword = !mostrarPassword;
+    }
+
+    private void VerificarParametrosURL()
+    {
+        var uri = new Uri(navegacion.Uri);
+        if (uri.Query.Contains("expired"))
+        {
+            MostrarMensaje("Su sesión ha expirado. Por favor inicie sesión nuevamente.", "warning", "bi-clock");
+        }
+        else if (uri.Query.Contains("unauthorized"))
+        {
+            MostrarMensaje("Acceso no autorizado. Debe iniciar sesión para continuar.", "info", "bi-shield-exclamation");
+        }
+    }
+
+    private void MostrarMensaje(string texto, string tipo, string icono = "")
+    {
+        mensaje = texto;
+        iconoAlerta = string.IsNullOrEmpty(icono) ? "bi-info-circle" : icono;
+        claseAlerta = $"alert alert-{tipo}";
+    }
+
+    private void LimpiarMensajes()
+    {
+        mensaje = "";
+        claseAlerta = "";
+        iconoAlerta = "";
+    }
+
+    // Métodos auxiliares para los botones
+    private void SeleccionarAdmin()
+    {
+        // El admin debe estar registrado en la base de datos con email admin@sistema.com
+        SeleccionarCredenciales("admin@sistema.com", "admin123");
+    }
+
+    private void SeleccionarUsuario(Usuario usuario)
+    {
+        SeleccionarCredenciales(usuario.Email, usuario.Contrasena);
+    }
+}

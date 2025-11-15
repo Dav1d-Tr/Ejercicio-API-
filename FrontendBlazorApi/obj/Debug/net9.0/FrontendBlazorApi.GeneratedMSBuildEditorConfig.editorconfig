@@ -24,6 +24,18 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Actividad.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBY3RpdmlkYWQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Archivo.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBcmNoaXZvLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Archivo_Entregable.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBcmNoaXZvX0VudHJlZ2FibGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Entregables.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFbnRyZWdhYmxlcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
@@ -40,8 +52,48 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/MetaEstrategica.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNZXRhRXN0cmF0ZWdpY2EucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Meta_Proyecto.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNZXRhX1Byb3llY3RvLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/ObjetivoEstrategico.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xPYmpldGl2b0VzdHJhdGVnaWNvLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Presupuesto.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcmVzdXB1ZXN0by5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Productos.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWN0b3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Producto_Entregable.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWN0b19FbnRyZWdhYmxlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Proyecto.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm95ZWN0by5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Proyecto_Producto.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm95ZWN0b19Qcm9kdWN0by5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Responsable.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXNwb25zYWJsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/Responsable_Entregable.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXNwb25zYWJsZV9FbnRyZWdhYmxlLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Damina David/Documents/Proyecto_ServiciosWeb/FrontendBlazorApi/Components/Pages/TipoProductos.razor]

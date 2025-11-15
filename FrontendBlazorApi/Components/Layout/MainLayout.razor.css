@@ -13,7 +13,7 @@ main {
     background-image: linear-gradient(180deg, #2a539f 0%, rgb(8, 25, 68) 70%);
 }
 
-.write{
+.write {
     color: #ffffff;
 }
 
@@ -26,27 +26,30 @@ main {
     align-items: center;
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
+.top-row ::deep a,
+.top-row ::deep .btn-link {
+    white-space: nowrap;
+    margin-left: 1.5rem;
+    text-decoration: none;
+}
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
+.top-row ::deep a:hover,
+.top-row ::deep .btn-link:hover {
+    text-decoration: underline;
+}
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+.top-row ::deep a:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 @media (max-width: 640.98px) {
     .top-row {
         justify-content: space-between;
     }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
+    .top-row ::deep a,
+    .top-row ::deep .btn-link {
         margin-left: 0;
     }
 }
@@ -75,7 +78,8 @@ main {
         width: 0;
     }
 
-    .top-row, article {
+    .top-row,
+    article {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
@@ -95,10 +99,48 @@ main {
     z-index: 1000;
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
-   
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+/* Estilo especial SOLO para tu botón */
+.btn-uiverse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 16px;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  transition: all 0.35s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* El icono se trata como si fuera el <svg> del ejemplo */
+.btn-uiverse i {
+  margin-right: 3px;
+  transform: rotate(30deg);
+  transition: transform 0.45s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* El texto se mueve igual que en el original */
+.btn-uiverse span {
+  transition: transform 0.45s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* Hover: efecto Uiverse */
+.btn-uiverse:hover:not([disabled]) i {
+  transform: translateX(5px) rotate(90deg);
+}
+
+.btn-uiverse:hover:not([disabled]) span {
+  transform: translateX(7px);
+}
+
+/* Disabled suave */
+.btn-uiverse:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

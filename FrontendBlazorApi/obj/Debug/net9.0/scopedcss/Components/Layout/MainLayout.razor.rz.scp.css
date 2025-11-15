@@ -13,7 +13,7 @@ main[b-ihevq7z9pr] {
     background-image: linear-gradient(180deg, #2a539f 0%, rgb(8, 25, 68) 70%);
 }
 
-.write[b-ihevq7z9pr]{
+.write[b-ihevq7z9pr] {
     color: #ffffff;
 }
 
@@ -26,27 +26,30 @@ main[b-ihevq7z9pr] {
     align-items: center;
 }
 
-    .top-row[b-ihevq7z9pr]  a, .top-row[b-ihevq7z9pr]  .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
+.top-row[b-ihevq7z9pr]  a,
+.top-row[b-ihevq7z9pr]  .btn-link {
+    white-space: nowrap;
+    margin-left: 1.5rem;
+    text-decoration: none;
+}
 
-    .top-row[b-ihevq7z9pr]  a:hover, .top-row[b-ihevq7z9pr]  .btn-link:hover {
-        text-decoration: underline;
-    }
+.top-row[b-ihevq7z9pr]  a:hover,
+.top-row[b-ihevq7z9pr]  .btn-link:hover {
+    text-decoration: underline;
+}
 
-    .top-row[b-ihevq7z9pr]  a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+.top-row[b-ihevq7z9pr]  a:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 @media (max-width: 640.98px) {
     .top-row[b-ihevq7z9pr] {
         justify-content: space-between;
     }
 
-    .top-row[b-ihevq7z9pr]  a, .top-row[b-ihevq7z9pr]  .btn-link {
+    .top-row[b-ihevq7z9pr]  a,
+    .top-row[b-ihevq7z9pr]  .btn-link {
         margin-left: 0;
     }
 }
@@ -75,7 +78,8 @@ main[b-ihevq7z9pr] {
         width: 0;
     }
 
-    .top-row[b-ihevq7z9pr], article[b-ihevq7z9pr] {
+    .top-row[b-ihevq7z9pr],
+    article[b-ihevq7z9pr] {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
@@ -95,10 +99,48 @@ main[b-ihevq7z9pr] {
     z-index: 1000;
 }
 
-    #blazor-error-ui .dismiss[b-ihevq7z9pr] {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
-   
+#blazor-error-ui .dismiss[b-ihevq7z9pr] {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+/* Estilo especial SOLO para tu botón */
+.btn-uiverse[b-ihevq7z9pr] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 16px;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  transition: all 0.35s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* El icono se trata como si fuera el <svg> del ejemplo */
+.btn-uiverse i[b-ihevq7z9pr] {
+  margin-right: 3px;
+  transform: rotate(30deg);
+  transition: transform 0.45s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* El texto se mueve igual que en el original */
+.btn-uiverse span[b-ihevq7z9pr] {
+  transition: transform 0.45s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* Hover: efecto Uiverse */
+.btn-uiverse:hover:not([disabled]) i[b-ihevq7z9pr] {
+  transform: translateX(5px) rotate(90deg);
+}
+
+.btn-uiverse:hover:not([disabled]) span[b-ihevq7z9pr] {
+  transform: translateX(7px);
+}
+
+/* Disabled suave */
+.btn-uiverse:disabled[b-ihevq7z9pr] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

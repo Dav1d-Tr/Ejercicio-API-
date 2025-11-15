@@ -300,3 +300,4 @@ C:\Users\Damina David\Documents\Proyecto_ServiciosWeb\API-Project\obj\Debug\net9
 C:\Users\Damina David\Documents\Proyecto_ServiciosWeb\API-Project\obj\Debug\net9.0\webapicsharp.pdb
 C:\Users\Damina David\Documents\Proyecto_ServiciosWeb\API-Project\obj\Debug\net9.0\webapicsharp.genruntimeconfig.cache
 C:\Users\Damina David\Documents\Proyecto_ServiciosWeb\API-Project\obj\Debug\net9.0\ref\webapicsharp.dll
+C:\Users\Damina David\Documents\Proyecto_ServiciosWeb\API-Project\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

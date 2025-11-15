@@ -1,0 +1,893 @@
+@page "/producto_Entregable"
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Linq
+@using System.ComponentModel.DataAnnotations
+@inject IHttpClientFactory fabricaHttp
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Responsables</PageTitle>
+
+<div class="container-fluid py-3">
+    <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-receipt fs-2 text-primary me-3"></i>
+        <h3 class="mb-0">Gestión de Responsables</h3>
+    </div>
+
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                        background: linear-gradient(to bottom, #414448, #646c7d);
+                        border: 1px solid #6a6a6c;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="ProbarConexion" title="Probar conexión con la API" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Probar Conexión</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-white fw-semibold" style="
+                        background: linear-gradient(to bottom, #357de9, #8ea6e0);
+                        border: 1px solid #8ea6e0;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="CargarProductoEntregables" title="Mostrar todos los responsables" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Mostrar Todos</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center align-items-center h-100 gap-3">
+            <div class="bg-gradient p-1 rounded-3" style="background: linear-gradient(to bottom, rgba(168, 168, 168, 0.4), transparent);">
+                <button type="button" class="btn p-1 rounded-2 shadow text-black fw-semibold" style="
+                        background: linear-gradient(to bottom, #ffffff, #c3cde7);
+                        border: 1px solid #dde5f8;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+                        transition: all 0.15s ease-in-out;
+                    " @onclick="LimpiarFormulario" title="Limpiar formulario" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                    <div class="rounded-1 px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">Limpiar</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="@claseAviso shadow-sm" role="alert">
+            <i class="bi bi-info-circle me-2"></i>@mensaje
+        </div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-clipboard-plus me-2"></i>Formulario de Responsable</h4>
+        </div>
+        <div class="card-body">
+            <EditForm EditContext="editContext" OnValidSubmit="GuardarSegunEstado">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person text-primary"></i> Entregable
+                        </label>
+                        <InputSelect class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="productoEntregableActual.FkIdEntregable">
+                            <option value="0">-- Seleccione --</option>
+                            @foreach (var c in listaEntregables)
+                            {
+                                <option value="@c.Id">@c.Titulo (ID: @c.Id)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person text-primary"></i> Producto
+                        </label>
+                        <InputSelect class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="productoEntregableActual.FkIdProducto">
+                            <option value="0">-- Seleccione --</option>
+                            @foreach (var c in listaProducts)
+                            {
+                                <option value="@c.Id">@c.Titulo (ID: @c.Id)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-hash text-primary"></i> Fecha De Asociación
+                        </label>
+                        <InputDate class="form-control bg-dark text-white border border-secondary rounded-lg transition duration-100 focus:border-info" @bind-Value="productoEntregableActual.FechaAsociacion" />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                    <button type="submit"
+                        class="btn-create d-flex align-items-center gap-1 text-white font-weight-bold border border-success rounded-pill px-4 py-2">
+                        <img src="icons/paper-plane-solid.svg" alt="Guardar" width="24" height="24" class="me-1" />
+                        @textoBotonGuardar
+                    </button>
+                    <button type="button"
+                        class="btn-buscar d-flex align-items-center gap-1 text-white font-weight-bold border border-secondary rounded-pill px-4 py-2"
+                        @onclick="BuscarPorNumero" title="Buscar responsable por número">
+                        <img src="icons/magnifying-glass-solid.svg" alt="Buscar" width="24" height="24" class="me-1" />
+                        Buscar
+                    </button>
+
+                    <button type="button"
+                        class="btn-eliminar d-flex align-items-center gap-1 text-white font-weight-bold border border-danger rounded-pill px-4 py-2"
+                        @onclick="EliminaProductoEntregable" disabled="@(!existeObjetivo)" title="Eliminar responsable">
+                        <img src="icons/trash-can-solid.svg" alt="Eliminar" width="24" height="24" class="me-1" />
+                        Eliminar
+                    </button>
+
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-table me-2"></i>Lista de Responsables</h4>
+        </div>
+        <div class="card-body">
+            @if (cargando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-3"><em>Cargando Responsables...</em></p>
+                </div>
+            }
+            else if (listaProductoEntregables.Count == 0)
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>No hay ProductoEntregables disponibles.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-primary">
+                            <tr>
+                                <th><i class="bi bi-person me-1"></i>Entregable</th>
+                                <th><i class="bi bi-person-badge me-1"></i>Producto</th>
+                                <th><i class="bi bi-calendar me-1"></i>Fecha De Asociacion</th>
+                                <th><i class="bi bi-gear me-1"></i>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in listaProductoEntregables)
+                            {
+                                <tr>
+                                    <td>@(string.IsNullOrWhiteSpace(f.Entregable) ? f.IdEntregable?.ToString() : f.Entregable)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(f.Producto) ? f.IdProducto?.ToString() : f.Producto)</td>
+                                    <td>@f.FechaAsociacion.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <button class="btn-cargar d-flex align-items-center gap-1 text-white font-weight-bold border border-primary rounded-pill px-4 py-2"
+                                            @onclick="@(async () => await CargarProductoEntregableCompleta(f.IdEntregable.Value))"
+                                            title="Cargar Responsable en formulario">
+                                            <img src="icons/spinner-solid.svg" alt="Cargar" width="24" height="24" class="me-1" />
+                                            Cargar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private EditContext? editContext;
+    private List<ProductoEntregableCompleta> listaProductoEntregables = new();
+    private List<ProductDto> listaProducts = new();
+    private List<EntregableDto> listaEntregables = new();
+
+    private ProductoEntregableDto productoEntregableActual { get; set; } = new();
+
+    private bool existeObjetivo = false;
+    private string textoBotonGuardar = "Crear";
+    private string mensaje = "";
+    private string claseAviso = "alert alert-info";
+    private bool cargando = false;
+
+    private const string urlProcedimientos = "api/procedimientos/ejecutarsp";
+    private const string urlConsultas = "api/consultas/ejecutarconsultaparametrizada";
+    private const string urlProductoEntregables = "api/Producto_Entregable";
+    private const string urlProducts = "api/Producto";
+    private const string urlEntregables = "api/Entregable";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // inicializa EditContext para que el EditForm lo use
+        editContext = new EditContext(productoEntregableActual);
+
+        // Cargar variables primero para evitar race conditions al mapear nombres.
+        await CargarProducts();
+        await CargarEntregables();
+        await CargarProductoEntregables();
+    }
+
+    private async Task CargarEntregables()
+    {
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+            var respuesta = await client.GetFromJsonAsync<RespuestaApi<List<Dictionary<string, object>>>>(urlEntregables);
+
+            listaEntregables = respuesta?.Datos?.Select(d =>
+            {
+                var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+                return new EntregableDto
+                {
+                    Id = ObtenerInt(normal, "id"),
+                    Titulo = ObtenerString(normal, "titulo")
+                };
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error cargando Entregables: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Error CargarEntregables: {ex}");
+        }
+    }
+
+    private async Task CargarProducts()
+    {
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+            var respuesta = await client.GetFromJsonAsync<RespuestaApi<List<Dictionary<string, object>>>>(urlProducts);
+
+            listaProducts = respuesta?.Datos?.Select(d =>
+            {
+                var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+                return new ProductDto
+                {
+                    Id = ObtenerInt(normal, "id"),
+                    Titulo = ObtenerString(normal, "titulo") // si existe
+                };
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error cargando Products: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Error CargarProducts: {ex}");
+        }
+    }
+
+    private async Task CargarProductoEntregables()
+    {
+        try
+        {
+            cargando = true;
+            StateHasChanged();
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametrosConsulta = new Dictionary<string, object?>
+            {
+                ["consulta"] = @"
+                    SELECT 
+                        f.IdEntregable AS identregable, 
+                        f.IdProducto AS idproducto, 
+                        f.fechaAsociacion
+                    FROM Producto_Entregable f 
+                    ORDER BY f.IdEntregable DESC",
+                ["parametros"] = new Dictionary<string, object?>()
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlConsultas, parametrosConsulta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaConsulta>();
+
+                listaProductoEntregables = resultado?.Resultados?.Select(d =>
+                {
+                    var normal = d.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+
+                    var fkTipo = ObtenerInt(normal, "identregable");
+                    var fkProducto = ObtenerInt(normal, "idproducto");
+                    var fechaAsociacion = ObtenerDateTime(normal, "fechaasociacion");
+
+                    var tipoTitulo = listaEntregables.FirstOrDefault(x => x.Id == fkTipo)?.Titulo ?? "";
+                    var productoDisplay = listaProducts.FirstOrDefault(x => x.Id == fkProducto)?.Id.ToString() ?? fkProducto.ToString();
+
+                    return new ProductoEntregableCompleta
+                    {
+                        IdEntregable = fkTipo,
+                        IdProducto = fkProducto,
+                        FechaAsociacion = fechaAsociacion,
+                        Entregable = tipoTitulo,
+                        Producto = productoDisplay
+                    };
+
+                }).ToList() ?? new();
+
+                mensaje = $"Se cargaron {listaProductoEntregables.Count} asociaciones Producto-Entregable.";
+                claseAviso = "alert alert-success";
+                StateHasChanged();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"❌ Error al cargar Producto_Entregable: {detalle}";
+                claseAviso = "alert alert-danger";
+                Console.WriteLine($"Detalle CargarProductoEntregables: {detalle}");
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al listar Producto_Entregable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CargarProductoEntregables: {ex}");
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+
+    private async Task BuscarPorNumero()
+    {
+        LimpiarMensajes();
+
+        if (productoEntregableActual.FkIdEntregable <= 0)
+        {
+            mensaje = "Debe indicar el número de Responsable.";
+            claseAviso = "alert alert-warning";
+            return;
+        }
+
+        await CargarProductoEntregableCompleta(productoEntregableActual.FkIdEntregable);
+    }
+
+    private async Task CargarProductoEntregableCompleta(int numeroProductoEntregable)
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "consultar_producto_entregable",
+                ["p_IdEntregable"] = numeroProductoEntregable
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"❌ Error al cargar responsable: {detalle}";
+                claseAviso = "alert alert-danger";
+                return;
+            }
+
+            var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaSP>();
+
+            if (resultado?.Resultados == null || resultado.Resultados.Count == 0)
+            {
+                mensaje = "Responsable no encontrado.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var primeraFila = resultado.Resultados[0];
+
+            // 1) Si la fila contiene una clave "Resultado" con JSON -> deserializar
+            if (primeraFila.TryGetValue("Resultado", out var val) && val != null)
+            {
+                var json = val.ToString();
+                if (!string.IsNullOrWhiteSpace(json))
+                {
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var objetivoDesdeJson = JsonSerializer.Deserialize<ProductoEntregableCompleta>(json, options);
+                    if (objetivoDesdeJson != null)
+                    {
+                        await PoblarDtoDesdeCompleta(objetivoDesdeJson);
+                        return;
+                    }
+                }
+            }
+
+            // 2) Si la fila ya viene con columnas (id, nombre, fkidproducto, fkidentregable) -> mapear directamente
+            var normal = primeraFila.ToDictionary(k => (k.Key ?? "").ToLowerInvariant(), v => v.Value);
+            if (normal.Count > 0)
+            {
+                //var fechaAsociacion = ObtenerDateTime(normal, "fechaasociacion");
+                //var fkProducto= ObtenerInt(normal, "fkidproducto");
+                //var fkTipo = ObtenerInt(normal, "fkidentregable");
+
+                var fkProducto = ObtenerInt(normal, "idproducto");
+                var fkTipo = ObtenerInt(normal, "identregable");
+                var fechaAsociacion = ObtenerDateTime(normal, "fechaasociacion");
+
+                productoEntregableActual = new ProductoEntregableDto
+                {
+                    FechaAsociacion = fechaAsociacion,
+                    FkIdProducto = fkProducto,
+                    FkIdEntregable = fkTipo
+                };
+
+                existeObjetivo = true;
+                textoBotonGuardar = "Actualizar";
+                mensaje = $"Responsable #{numeroProductoEntregable} cargado.";
+                claseAviso = "alert alert-success";
+                StateHasChanged();
+                return;
+            }
+
+            mensaje = "No se pudo interpretar el resultado del procedimiento.";
+            claseAviso = "alert alert-warning";
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al cargar Responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CargarProductoEntregableCompleta: {ex}");
+        }
+    }
+
+    private async Task GuardarSegunEstado()
+    {
+        if (existeObjetivo)
+            await ActualizarProductoEntregable();
+        else
+            await CrearProductoEntregable();
+    }
+
+    private async Task CrearProductoEntregable()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            // validaciones básicas
+            //productoEntregableActual.Nombre = productoEntregableActual.Nombre?.Trim() ?? "";
+
+            if (productoEntregableActual.FkIdProducto <= 0)
+            {
+                mensaje = "⚠️ Debe seleccionar producto.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            if (productoEntregableActual.FkIdEntregable <= 0)
+            {
+                mensaje = "⚠️ Debe seleccionar Tipo De Responsable.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            /*if (string.IsNullOrEmpty(productoEntregableActual.Nombre))
+            {
+                mensaje = "⚠️ El Nombre es obligatorio.";
+                claseAviso = "alert alert-warning";
+                return;
+            }*/
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            // envio parámetros correctos (antes estaban invertidos)
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "crear_producto_entregable",
+                ["p_IdEntregable"] = productoEntregableActual.FkIdEntregable,
+                ["p_FechaAsociacion"] = productoEntregableActual.FechaAsociacion,
+                ["p_IdProducto"] = productoEntregableActual.FkIdProducto
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable creado exitosamente.";
+                claseAviso = "alert alert-success";
+                await CargarProductoEntregables();
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al crear responsable: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al crear Responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception CrearProductoEntregable: {ex}");
+        }
+    }
+
+    private async Task ActualizarProductoEntregable()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            if (productoEntregableActual.FkIdEntregable <= 0)
+            {
+                mensaje = "⚠️ Debe indicar el número de Responsable.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var confirmar = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está seguro de actualizar el responsable #{productoEntregableActual.FkIdEntregable}?");
+            if (!confirmar)
+            {
+                mensaje = "ℹ️ Actualización cancelada.";
+                claseAviso = "alert alert-info";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "actualizar_producto_entregable",
+                ["p_IdEntregable"] = productoEntregableActual.FkIdEntregable,
+                ["p_NuevaFecha"] = productoEntregableActual.FechaAsociacion,
+                ["p_IdProducto"] = productoEntregableActual.FkIdProducto
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable actualizado exitosamente.";
+                claseAviso = "alert alert-success";
+
+                // Actualiza la lista local si existe el elemento
+                var item = listaProductoEntregables.FirstOrDefault(x => x.IdEntregable == productoEntregableActual.FkIdEntregable);
+                if (item != null)
+                {
+                    item.FechaAsociacion = productoEntregableActual.FechaAsociacion;
+                    item.Producto= listaProducts.FirstOrDefault(v => v.Id == productoEntregableActual.FkIdProducto)?.Id.ToString()
+                                   ?? productoEntregableActual.FkIdProducto.ToString();
+                    item.IdProducto= productoEntregableActual.FkIdProducto;
+                    item.Entregable = listaEntregables.FirstOrDefault(v => v.Id == productoEntregableActual.FkIdEntregable)?.Titulo
+                                           ?? productoEntregableActual.FkIdEntregable.ToString();
+                    item.IdEntregable = productoEntregableActual.FkIdEntregable;
+                    StateHasChanged();
+                }
+
+                // refrescar para mantener consistencia con BD
+                await CargarProductoEntregables();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al actualizar: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al actualizar Responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception ActualizarProductoEntregable: {ex}");
+        }
+    }
+
+    private async Task EliminaProductoEntregable()
+    {
+        LimpiarMensajes();
+
+        try
+        {
+            if (productoEntregableActual.FkIdEntregable <= 0)
+            {
+                mensaje = "Debe indicar el número de Responsable.";
+                claseAviso = "alert alert-warning";
+                return;
+            }
+
+            var confirmar = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está seguro de eliminar el responsable #{productoEntregableActual.FkIdEntregable}?");
+            if (!confirmar)
+            {
+                mensaje = "Eliminación cancelada.";
+                claseAviso = "alert alert-info";
+                return;
+            }
+
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametros = new Dictionary<string, object?>
+            {
+                ["nombreSP"] = "eliminar_producto_entregable",
+                ["p_IdProducto"] = productoEntregableActual.FkIdProducto,
+                ["p_IdEntregable"] = productoEntregableActual.FkIdEntregable
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlProcedimientos, parametros);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Responsable eliminado correctamente.";
+                claseAviso = "alert alert-success";
+                await CargarProductoEntregables();
+                LimpiarFormulario();
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                Console.WriteLine(detalle);
+                mensaje = $"❌ Error al eliminar: {detalle}";
+                claseAviso = "alert alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"❌ Error al eliminar responsable: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception EliminaProductoEntregable: {ex}");
+        }
+    }
+
+    private async Task ProbarConexion()
+    {
+        LimpiarMensajes();
+        try
+        {
+            var client = fabricaHttp.CreateClient("ApiProductos");
+
+            var parametrosConsulta = new Dictionary<string, object?>
+            {
+                ["consulta"] = "SELECT COUNT(*) AS total FROM Producto_Entregable",
+                ["parametros"] = new Dictionary<string, object?>()
+            };
+
+            var respuesta = await client.PostAsJsonAsync(urlConsultas, parametrosConsulta);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "Conexión con la API y base de datos verificada correctamente.";
+                claseAviso = "alert alert-success";
+            }
+            else
+            {
+                var detalle = await respuesta.Content.ReadAsStringAsync();
+                mensaje = $"La API respondió pero con error: {detalle}";
+                claseAviso = "alert alert-warning";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error de conexión: {ex.Message}";
+            claseAviso = "alert alert-danger";
+            Console.WriteLine($"Exception ProbarConexion: {ex}");
+        }
+    }
+
+    private void LimpiarFormulario()
+    {
+        productoEntregableActual.FkIdProducto = 0;
+        productoEntregableActual.FechaAsociacion = DateTime.Now;
+        productoEntregableActual.FkIdEntregable = 0;
+
+        existeObjetivo = false;
+        textoBotonGuardar = "Crear";
+
+        editContext = new EditContext(productoEntregableActual);
+
+        LimpiarMensajes();
+        StateHasChanged();
+    }
+
+    private void LimpiarMensajes()
+    {
+        mensaje = "";
+        claseAviso = "alert alert-info";
+    }
+
+    // Helpers robustos para distintos tipos JSON/objetos
+    private int ObtenerInt(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return 0;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt32(out var i)) return i;
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt64(out var l)) return (int)l;
+            if (elem.ValueKind == JsonValueKind.String && int.TryParse(elem.GetString(), out var p)) return p;
+            return 0;
+        }
+
+        if (int.TryParse(valor.ToString(), out var res)) return res;
+        return 0;
+    }
+
+    private decimal ObtenerDecimal(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return 0m;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.Number && elem.TryGetDecimal(out var d)) return d;
+            if (elem.ValueKind == JsonValueKind.String && decimal.TryParse(elem.GetString(), out var p)) return p;
+            return 0m;
+        }
+
+        if (decimal.TryParse(valor.ToString(), out var res)) return res;
+        return 0m;
+    }
+
+    private DateTime ObtenerDateTime(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return DateTime.MinValue;
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.String && DateTime.TryParse(elem.GetString(), out var d)) return d;
+            return DateTime.MinValue;
+        }
+
+        if (DateTime.TryParse(valor.ToString(), out var res)) return res;
+        return DateTime.MinValue;
+    }
+
+    private string ObtenerString(Dictionary<string, object> dict, string key)
+    {
+        if (!dict.TryGetValue(key, out var valor) || valor == null) return "";
+
+        if (valor is JsonElement elem)
+        {
+            if (elem.ValueKind == JsonValueKind.String) return elem.GetString() ?? "";
+            return elem.ToString();
+        }
+
+        return valor?.ToString() ?? "";
+    }
+
+    // DTOs / modelos locales
+    private class ProductoEntregableDto
+    {
+        public int FkIdProducto { get; set; }  // corresponde a IdProductoen DB
+        public int FkIdEntregable { get; set; }
+        public DateTime FechaAsociacion { get; set; } = DateTime.MinValue;
+    }
+
+    private class ProductoEntregableCompleta
+    {
+        [JsonPropertyName("fechaAsociacion")]
+        public DateTime FechaAsociacion { get; set; } = DateTime.MinValue;
+
+        // mantengo ambas formas: id y texto legible para flexibilidad
+        public int? IdEntregable { get; set; }
+        public string Entregable { get; set; } = "";
+
+        public int? IdProducto{ get; set; }
+        public string Producto{ get; set; } = "";
+    }
+
+    private class RespuestaConsulta
+    {
+        [JsonPropertyName("Resultados")]
+        public List<Dictionary<string, object>>? Resultados { get; set; }
+
+        [JsonPropertyName("Advertencia")]
+        public string? Advertencia { get; set; }
+    }
+
+    private class RespuestaApi<T>
+    {
+        [JsonPropertyName("datos")]
+        public T? Datos { get; set; }
+    }
+
+    private class RespuestaSP
+    {
+        [JsonPropertyName("Procedimiento")]
+        public string? Procedimiento { get; set; }
+
+        [JsonPropertyName("Resultados")]
+        public List<Dictionary<string, object>>? Resultados { get; set; }
+
+        [JsonPropertyName("Total")]
+        public int Total { get; set; }
+
+        [JsonPropertyName("Mensaje")]
+        public string? Mensaje { get; set; }
+    }
+
+    private class ProductDto
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = "";
+    }
+
+    private class EntregableDto
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = "";
+    }
+
+    private async Task PoblarDtoDesdeCompleta(ProductoEntregableCompleta completa)
+    {
+        int fkId = 0;
+        int fkIdTR = 0;
+
+        // Entregable: si viene texto intenta match por título; si viene id intenta parsear
+        if (!string.IsNullOrWhiteSpace(completa.Entregable))
+        {
+            var encontradoPorTitulo = listaEntregables.FirstOrDefault(c => string.Equals(c.Titulo, completa.Entregable, StringComparison.OrdinalIgnoreCase));
+            if (encontradoPorTitulo != null)
+                fkIdTR = encontradoPorTitulo.Id;
+            else if (int.TryParse(completa.Entregable, out var parsedTR))
+                fkIdTR = parsedTR;
+        }
+        else if (completa.IdEntregable.HasValue)
+        {
+            fkIdTR = completa.IdEntregable.Value;
+        }
+
+        // Producto: si viene id directo
+        if (completa.IdProducto.HasValue)
+        {
+            fkId = completa.IdProducto.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(completa.Producto) && int.TryParse(completa.Producto, out var parsedUsu))
+        {
+            fkId = parsedUsu;
+        }
+        else if (!string.IsNullOrWhiteSpace(completa.Producto))
+        {
+            var encontradoPorCodigo = listaProducts.FirstOrDefault(c => c.Id.ToString() == completa.Producto);
+            if (encontradoPorCodigo != null) fkId = encontradoPorCodigo.Id;
+        }
+
+        productoEntregableActual.FechaAsociacion = completa.FechaAsociacion;
+        productoEntregableActual.FkIdProducto = fkId;
+        productoEntregableActual.FkIdEntregable = fkIdTR;
+
+        existeObjetivo = true;
+        textoBotonGuardar = "Actualizar";
+        mensaje = $"Responsable #{completa.IdEntregable} cargado.";
+        claseAviso = "alert alert-success";
+
+        editContext?.NotifyFieldChanged(new FieldIdentifier(productoEntregableActual, nameof(productoEntregableActual.FechaAsociacion)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(productoEntregableActual, nameof(productoEntregableActual.FkIdProducto)));
+        editContext?.NotifyFieldChanged(new FieldIdentifier(productoEntregableActual, nameof(productoEntregableActual.FkIdEntregable)));
+
+        StateHasChanged();
+    }
+}
